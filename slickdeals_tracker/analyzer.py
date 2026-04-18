@@ -1,4 +1,4 @@
-"""TV deal review analyzer — looks up RTINGS scores and expert reviews via search."""
+"""Deal review analyzer — category-aware, works for TVs, laptops, headphones, GPUs, and more."""
 
 import re
 import time
@@ -7,68 +7,42 @@ from typing import Optional
 
 import requests
 
+from .categories import CATEGORIES, CategoryProfile, detect_category
 from .models import Deal
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; SlickdealsTracker/1.0)"}
 
-# Regex to extract TV model tokens from a deal title
-_BRAND_RE = re.compile(
-    r"\b(lg|samsung|sony|tcl|hisense|vizio|philips|panasonic|sharp|insignia|toshiba)\b",
-    re.IGNORECASE,
-)
-_MODEL_RE = re.compile(
-    r"\b([A-Z]{1,5}\d{1,5}[A-Z0-9]{0,6}|[A-Z]\d[A-Z]\d+[A-Z0-9]*)\b"
-)
-_SIZE_RE = re.compile(r"\b(55|60|65|70|75|77|80|83|85|86|98)[\s\"-]?(?:inch|\"|\s*class)?\b", re.IGNORECASE)
+_PRICE_RE = re.compile(r"[^\d.]")
 
 
 @dataclass
 class ReviewResult:
     model_guess: str
-    rtings_url: Optional[str]
+    review_site: str
+    review_url: Optional[str]
     expert_verdict: str
-    score_estimate: Optional[float]  # 0-10
-    pros: list[str] = field(default_factory=list)
-    cons: list[str] = field(default_factory=list)
+    score_estimate: Optional[float]  # 0-10 sentiment score
     sources: list[str] = field(default_factory=list)
 
 
 @dataclass
 class DealAnalysis:
     deal: Deal
+    category: str
     discount_pct: Optional[float]
-    panel_type: Optional[str]
-    size_inches: Optional[int]
+    specs: dict[str, str]           # e.g. {"Panel": "OLED", "Size": "65\"", "RAM": "16 GB"}
     review: Optional[ReviewResult]
-    verdict: str       # "GREAT" / "GOOD" / "FAIR" / "SKIP"
+    verdict: str                    # "GREAT DEAL" / "GOOD DEAL" / "FAIR DEAL" / "SKIP"
     verdict_reason: str
-    value_score: float  # 0-10 composite
-
-
-def _guess_panel_type(title: str) -> Optional[str]:
-    t = title.upper()
-    if "OLED" in t:
-        return "OLED"
-    if "MINI-LED" in t or "MINI LED" in t or "MINILED" in t or "QLED" in t:
-        return "Mini-LED/QLED"
-    if "QLED" in t:
-        return "QLED"
-    if "LED" in t or "LCD" in t:
-        return "LED/LCD"
-    return None
-
-
-def _extract_size(title: str) -> Optional[int]:
-    m = _SIZE_RE.search(title)
-    return int(m.group(1)) if m else None
+    value_score: float              # 0-10 composite
 
 
 def _discount_pct(price_str: Optional[str], orig_str: Optional[str]) -> Optional[float]:
     if not price_str or not orig_str:
         return None
     try:
-        price = float(re.sub(r"[^\d.]", "", price_str))
-        orig = float(re.sub(r"[^\d.]", "", orig_str))
+        price = float(_PRICE_RE.sub("", price_str))
+        orig  = float(_PRICE_RE.sub("", orig_str))
         if orig > 0 and price < orig:
             return round((orig - price) / orig * 100, 1)
     except ValueError:
@@ -76,18 +50,29 @@ def _discount_pct(price_str: Optional[str], orig_str: Optional[str]) -> Optional
     return None
 
 
-def _extract_model_name(title: str) -> str:
-    brand = _BRAND_RE.search(title)
-    brand_str = brand.group(0).upper() if brand else ""
-    models = _MODEL_RE.findall(title)
+def _extract_model(title: str, profile: CategoryProfile) -> str:
+    """Pull brand + model number tokens from the title using the category's brand list."""
+    brand_pat = re.compile(
+        r"\b(" + "|".join(re.escape(b) for b in profile.brands) + r")\b",
+        re.IGNORECASE,
+    ) if profile.brands else None
+
+    model_pat = re.compile(r"\b([A-Z]{1,5}\d{1,5}[A-Z0-9]{0,8}|[A-Z]\d[A-Z]\d+[A-Z0-9]*)\b")
+
+    brand_str = ""
+    if brand_pat:
+        m = brand_pat.search(title)
+        if m:
+            brand_str = m.group(0).upper()
+
+    models = model_pat.findall(title)
     model_str = " ".join(models[:2]) if models else ""
-    size = _extract_size(title)
-    size_str = f'{size}"' if size else ""
-    return f"{brand_str} {size_str} {model_str}".strip()
+
+    return (brand_str + " " + model_str).strip() or title[:50]
 
 
 def _ddg_search(query: str) -> list[dict]:
-    """Query DuckDuckGo Instant Answers API (no auth, no rate limit blocking)."""
+    """DuckDuckGo Instant Answers — no API key, no auth required."""
     try:
         resp = requests.get(
             "https://api.duckduckgo.com/",
@@ -99,7 +84,7 @@ def _ddg_search(query: str) -> list[dict]:
         results = []
         if data.get("AbstractText"):
             results.append({"text": data["AbstractText"], "url": data.get("AbstractURL", "")})
-        for item in data.get("RelatedTopics", [])[:5]:
+        for item in data.get("RelatedTopics", [])[:6]:
             if isinstance(item, dict) and item.get("Text"):
                 results.append({"text": item["Text"], "url": item.get("FirstURL", "")})
         return results
@@ -107,60 +92,74 @@ def _ddg_search(query: str) -> list[dict]:
         return []
 
 
-_POSITIVE_WORDS = {"excellent", "great", "outstanding", "impressive", "best", "top", "recommended",
-                   "value", "bright", "stunning", "award", "winner", "punches above", "fantastic"}
-_NEGATIVE_WORDS = {"disappointing", "dim", "blooming", "poor", "weak", "mediocre", "skip",
-                   "avoid", "washed", "ghosting", "banding", "issues", "problems"}
-
-
-def _sentiment_score(texts: list[str]) -> float:
+def _sentiment(texts: list[str], profile: CategoryProfile) -> float:
     combined = " ".join(texts).lower()
-    pos = sum(1 for w in _POSITIVE_WORDS if w in combined)
-    neg = sum(1 for w in _NEGATIVE_WORDS if w in combined)
+    pos = sum(1 for w in profile.positive_words if w in combined)
+    neg = sum(1 for w in profile.negative_words if w in combined)
     total = pos + neg
     if total == 0:
-        return 6.5  # neutral
+        return 6.5  # neutral default
     return round(5.0 + (pos - neg) / total * 3.5, 1)
 
 
+def _find_review_url(results: list[dict], profile: CategoryProfile) -> Optional[str]:
+    """Look for a URL matching the profile's review site domain."""
+    site_domain_hints = {
+        "RTINGS":                   "rtings.com",
+        "NotebookCheck":            "notebookcheck.net",
+        "GSMArena":                 "gsmarena.com",
+        "Tom's Hardware":           "tomshardware.com",
+        "Tom's Hardware / PCMag":   "tomshardware.com",
+        "Tom's Hardware / SmallNetBuilder": "tomshardware.com",
+        "DPReview":                 "dpreview.com",
+        "Metacritic / IGN":         "metacritic.com",
+        "The Verge / PCMag":        "theverge.com",
+        "Wirecutter / Consumer Reports": "nytimes.com/wirecutter",
+        "Google / PCMag":           "pcmag.com",
+    }
+    domain = site_domain_hints.get(profile.review_site, "")
+    if domain:
+        for r in results:
+            if domain.split("/")[0] in r.get("url", ""):
+                return r["url"]
+    return next((r["url"] for r in results if r.get("url")), None)
+
+
 def _verdict(value_score: float, discount_pct: Optional[float]) -> tuple[str, str]:
-    discount = discount_pct or 0
-    if value_score >= 8.0 and discount >= 25:
-        return "GREAT DEAL", "Top-reviewed TV at a substantial discount."
-    if value_score >= 7.0 and discount >= 15:
-        return "GOOD DEAL", "Well-reviewed TV with a solid discount."
-    if value_score >= 6.0 or discount >= 20:
-        return "FAIR DEAL", "Decent value but not exceptional."
+    d = discount_pct or 0
+    if value_score >= 8.0 and d >= 25:
+        return "GREAT DEAL", "Highly rated product at a substantial discount."
+    if value_score >= 7.0 and d >= 15:
+        return "GOOD DEAL", "Well-reviewed product with a solid discount."
+    if value_score >= 6.0 or d >= 20:
+        return "FAIR DEAL", "Decent value but not an exceptional deal."
     return "SKIP", "Low review sentiment or minimal discount — wait for better pricing."
 
 
-def analyze_deal(deal: Deal, delay: float = 1.0) -> DealAnalysis:
-    model_name = _extract_model_name(deal.title)
-    panel = _guess_panel_type(deal.title)
-    size = _extract_size(deal.title)
+def analyze_deal(deal: Deal, category_hint: str = "", delay: float = 1.0) -> DealAnalysis:
+    profile = detect_category(deal.title, deal.matched_keywords, category_hint)
+    model   = _extract_model(deal.title, profile)
+    specs   = profile.extract_specs(deal.title)
     discount = _discount_pct(deal.price, deal.original_price)
 
-    # Search for review data
-    query = f"{model_name} RTINGS review score"
-    time.sleep(delay)  # be polite
+    query = profile.review_query_template.format(model=model)
+    time.sleep(delay)
     results = _ddg_search(query)
 
-    texts = [r["text"] for r in results]
-    rtings_url = next(
-        (r["url"] for r in results if "rtings.com" in r.get("url", "")), None
-    )
+    texts      = [r["text"] for r in results]
+    sentiment  = _sentiment(texts, profile)
+    review_url = _find_review_url(results, profile)
 
-    sentiment = _sentiment_score(texts)
-
-    # Weight: review sentiment (60%) + discount generosity (40%)
+    # Composite score: review sentiment (60%) + discount depth (40%)
     discount_score = min((discount or 0) / 40 * 10, 10)
-    value_score = round(sentiment * 0.6 + discount_score * 0.4, 1)
+    value_score    = round(sentiment * 0.6 + discount_score * 0.4, 1)
 
     verdict_label, verdict_reason = _verdict(value_score, discount)
 
     review = ReviewResult(
-        model_guess=model_name,
-        rtings_url=rtings_url,
+        model_guess=model,
+        review_site=profile.review_site,
+        review_url=review_url,
         expert_verdict=" ".join(texts[:2])[:300] if texts else "No review data found.",
         score_estimate=sentiment,
         sources=[r["url"] for r in results if r.get("url")][:3],
@@ -168,9 +167,9 @@ def analyze_deal(deal: Deal, delay: float = 1.0) -> DealAnalysis:
 
     return DealAnalysis(
         deal=deal,
+        category=profile.name,
         discount_pct=discount,
-        panel_type=panel,
-        size_inches=size,
+        specs=specs,
         review=review,
         verdict=verdict_label,
         verdict_reason=verdict_reason,

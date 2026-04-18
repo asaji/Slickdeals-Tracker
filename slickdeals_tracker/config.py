@@ -9,6 +9,7 @@ import yaml
 class SearchConfig:
     name: str
     query: str
+    category: str = ""              # maps to a CategoryProfile key; auto-detected if blank
     keywords: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
     min_score: int = 0
@@ -60,6 +61,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         SearchConfig(
             name=s["name"],
             query=s["query"],
+            category=s.get("category", ""),
             keywords=s.get("keywords", []),
             exclude=s.get("exclude", []),
             min_score=s.get("min_score", 0),

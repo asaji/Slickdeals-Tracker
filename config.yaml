@@ -4,55 +4,114 @@ max_deals_display: 20
 show_seen: false
 
 searches:
+
   - name: TVs
+    category: TVs
     query: TV
-    keywords:
-      - tv
-      - television
-      - oled
-      - qled
-      - 4k
-      - 8k
-      - uhd
-      - hdtv
-      - smart tv
-    exclude:
-      - monitor
-      - projector
-      - streaming stick
-      - firestick
+    keywords: [tv, television, oled, qled, qned, 4k, 8k, uhd, hdtv, smart tv, mini-led]
+    exclude: [monitor, projector, streaming stick, firestick, fire stick, android box]
+    min_score: 10
+
+  - name: Monitors
+    category: Monitors
+    query: monitor
+    keywords: [monitor, display, ips, oled, 144hz, 240hz, 4k monitor, ultrawide, gaming monitor]
+    exclude: [tv, television, laptop, tablet]
     min_score: 10
 
   - name: Laptops
+    category: Laptops
     query: laptop
-    keywords:
-      - laptop
-      - notebook
-      - chromebook
-      - macbook
-      - thinkpad
-      - ultrabook
-    exclude:
-      - case
-      - bag
-      - sleeve
-      - stand
-      - charger
+    keywords: [laptop, notebook, chromebook, macbook, thinkpad, ultrabook, gaming laptop, 2-in-1]
+    exclude: [case, bag, sleeve, stand, charger, docking station, cooler]
+    min_score: 10
+
+  - name: Headphones
+    category: Headphones
+    query: headphones
+    keywords: [headphones, earbuds, earphones, headset, anc, noise cancelling, true wireless,
+               airpods, over-ear, in-ear]
+    exclude: [gaming headset stand, mic only, replacement ear pads]
+    min_score: 8
+
+  - name: Smartphones
+    category: Smartphones
+    query: smartphone
+    keywords: [iphone, pixel, galaxy s, galaxy a, oneplus, moto g, android phone, 5g phone]
+    exclude: [case, screen protector, charger, cable, holder, mount, stand]
+    min_score: 10
+
+  - name: Tablets
+    category: Tablets
+    query: tablet
+    keywords: [ipad, galaxy tab, fire hd, surface pro, surface go, android tablet, drawing tablet]
+    exclude: [case, keyboard cover, stylus only, stand, charger]
+    min_score: 8
+
+  - name: GPUs
+    category: GPUs
+    query: graphics card
+    keywords: [rtx, rx 7, rx 6, geforce, radeon, gpu, graphics card, video card]
+    exclude: [laptop, notebook, mining, used, refurbished]
+    min_score: 15
+
+  - name: CPUs
+    category: CPUs
+    query: processor
+    keywords: [ryzen, core i5, core i7, core i9, core ultra, threadripper, cpu, processor]
+    exclude: [laptop, cooler only, fan only, thermal paste only]
+    min_score: 12
+
+  - name: SSDs
+    category: SSDs
+    query: SSD
+    keywords: [ssd, nvme, m.2, solid state, external ssd, portable ssd, usb drive, flash drive]
+    exclude: [enclosure only, adapter only, cable only]
+    min_score: 8
+
+  - name: Cameras
+    category: Cameras
+    query: camera
+    keywords: [mirrorless, dslr, digital camera, action camera, gopro, lens, camera bundle]
+    exclude: [security camera, doorbell camera, webcam, phone camera, case, strap, tripod only]
     min_score: 10
 
   - name: Gaming
-    query: gaming
-    keywords:
-      - ps5
-      - xbox
-      - nintendo
-      - switch
-      - gaming
-      - gpu
-      - graphics card
-      - rtx
-      - rx 7
-    exclude:
-      - controller skin
-      - sticker
+    category: Gaming
+    query: PS5
+    keywords: [ps5, playstation 5, xbox series, nintendo switch, steam deck, game bundle,
+               console bundle]
+    exclude: [controller skin, sticker, stand only, charging dock only]
     min_score: 15
+
+  - name: Gaming Peripherals
+    category: Gaming Peripherals
+    query: gaming keyboard
+    keywords: [gaming keyboard, mechanical keyboard, gaming mouse, gaming headset, mousepad,
+               keychron, razer keyboard, corsair keyboard]
+    exclude: [keyboard cover, laptop keyboard, replacement keycap only]
+    min_score: 8
+
+  - name: Smart Home
+    category: Smart Home
+    query: smart home
+    keywords: [echo, alexa, google home, homepod, smart bulb, smart plug, smart lock,
+               ring doorbell, nest, ecobee, hue, matter, zigbee, smart speaker]
+    exclude: [refurbished, parts only]
+    min_score: 8
+
+  - name: Appliances
+    category: Appliances
+    query: vacuum
+    keywords: [robot vacuum, roomba, dyson, shark vacuum, air fryer, instant pot, ninja,
+               air purifier, coffee maker, espresso, blender, stand mixer]
+    exclude: [replacement filter, replacement bag, brush roll only, descaler only]
+    min_score: 10
+
+  - name: Routers
+    category: Routers
+    query: wifi router
+    keywords: [wifi router, mesh wifi, wi-fi 6, wi-fi 7, ax router, be router, eero,
+               orbi, deco, nighthawk, access point]
+    exclude: [wifi extender only, powerline, ethernet cable only]
+    min_score: 8

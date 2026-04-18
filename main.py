@@ -108,11 +108,12 @@ def run(config: str, watch: bool, interval: int, demo: bool) -> None:
 def analyze(config: str, demo: bool) -> None:
     """Fetch deals and run review analysis on each one."""
     if demo:
-        deals = sample_deals()
+        deals_with_category = [(d, "TVs") for d in sample_deals()]
     else:
         cfg = load_config(config)
         db = DealDatabase(cfg.db_path)
-        deals = []
+        deals_with_category: list[tuple] = []
+        seen_ids: set[str] = set()
         for search in cfg.searches:
             fetched = fetch_search(
                 query=search.query,
@@ -121,20 +122,21 @@ def analyze(config: str, demo: bool) -> None:
                 min_score=search.min_score,
             )
             for d in fetched:
-                if d.id not in {x.id for x in deals}:
-                    deals.append(d)
+                if d.id not in seen_ids:
+                    deals_with_category.append((d, search.category or search.name))
+                    seen_ids.add(d.id)
         if fetch_errors:
             for err in fetch_errors:
                 _console.print(f"[yellow]Warning:[/yellow] {err}")
             fetch_errors.clear()
 
-    if not deals:
+    if not deals_with_category:
         _console.print("[dim]No deals to analyze.[/dim]")
         return
 
-    _console.print(f"\n[bold]Analyzing {len(deals)} deal(s) — looking up reviews…[/bold]\n")
-    for deal in sorted(deals, key=lambda d: d.score, reverse=True):
-        result = analyze_deal(deal)
+    _console.print(f"\n[bold]Analyzing {len(deals_with_category)} deal(s) — looking up reviews…[/bold]\n")
+    for deal, category in sorted(deals_with_category, key=lambda x: x[0].score, reverse=True):
+        result = analyze_deal(deal, category_hint=category)
         print_analysis(result)
 
 

@@ -96,31 +96,38 @@ def print_analysis(analysis) -> None:
 
     verdict_colors = {
         "GREAT DEAL": "bold green",
-        "GOOD DEAL": "green",
-        "FAIR DEAL": "yellow",
-        "SKIP": "red",
+        "GOOD DEAL":  "green",
+        "FAIR DEAL":  "yellow",
+        "SKIP":       "red",
     }
     color = verdict_colors.get(a.verdict, "white")
 
     lines = [
         f"[bold white]{a.deal.title}[/bold white]",
+        f"[dim]Category: {a.category}[/dim]",
         f"[{color}]▶ {a.verdict}[/{color}]  —  {a.verdict_reason}",
         "",
         f"  Price     : [cyan]{a.deal.savings_str}[/cyan]"
         + (f"  [dim]({a.discount_pct:.0f}% off)[/dim]" if a.discount_pct else ""),
-        f"  Panel     : {a.panel_type or 'Unknown'}",
-        f"  Size      : {a.size_inches}\"" if a.size_inches else "  Size      : Unknown",
-        f"  Score     : +{a.deal.score} community votes",
+    ]
+
+    for label, value in a.specs.items():
+        lines.append(f"  {label:<10}: {value}")
+
+    lines += [
+        f"  Votes     : +{a.deal.score} community votes",
         f"  Value /10 : [bold]{a.value_score}[/bold]",
     ]
 
     if a.review:
         lines += [
             "",
-            f"  [dim]Review sentiment score: {a.review.score_estimate}/10[/dim]",
+            f"  [dim]Sentiment ({a.review.review_site}): {a.review.score_estimate}/10[/dim]",
         ]
-        if a.review.rtings_url:
-            lines.append(f"  [blue underline]RTINGS: {a.review.rtings_url}[/blue underline]")
+        if a.review.review_url:
+            lines.append(
+                f"  [blue underline]{a.review.review_site}: {a.review.review_url}[/blue underline]"
+            )
         if a.review.expert_verdict and a.review.expert_verdict != "No review data found.":
             snippet = a.review.expert_verdict[:200]
             lines.append(f"\n  [dim italic]\"{snippet}…\"[/dim italic]")
