@@ -10,19 +10,77 @@ from rich.console import Console
 from slickdeals_tracker.analyzer import analyze_deal
 from slickdeals_tracker.config import load_config, write_default_config
 from slickdeals_tracker.database import DealDatabase
-from slickdeals_tracker.demo import sample_deals
-from slickdeals_tracker.display import console, print_analysis, print_deals_table, print_header, print_summary
-from slickdeals_tracker.fetcher import fetch_errors, fetch_frontpage, fetch_search
+from slickdeals_tracker.demo import sample_deals, sample_hot_deals
+from slickdeals_tracker.display import (
+    console,
+    print_analysis,
+    print_deals_table,
+    print_header,
+    print_hot_header,
+    print_summary,
+)
+from slickdeals_tracker.fetcher import fetch_errors, fetch_frontpage, fetch_hot_deals, fetch_search
 from slickdeals_tracker.notifier import notify_analyses, notify_new_deals, send_test
 
 _console = Console()
 
 
-def _run_once(config, db: DealDatabase) -> tuple[int, int]:
+# ---------------------------------------------------------------------------
+# Core logic helpers
+# ---------------------------------------------------------------------------
+
+def _flush_fetch_errors() -> None:
+    for err in fetch_errors:
+        _console.print(f"[yellow]Warning:[/yellow] {err}")
+    fetch_errors.clear()
+
+
+def _check_hot_deals(cfg, db: DealDatabase) -> list:
+    """Fetch hot frontpage deals, save new ones, optionally analyze. Returns analyses or deals."""
+    hd = cfg.hot_deals
+    print_hot_header()
+
+    deals = fetch_hot_deals(min_score=hd.min_score, exclude=hd.exclude)
+
+    new_deals = []
+    for deal in deals:
+        if not db.is_seen(deal.id):
+            deal.seen = False
+            db.save_deal(deal)
+            new_deals.append(deal)
+
+    if not new_deals:
+        _console.print("[dim]No new hot deals.[/dim]\n")
+        return []
+
+    analyses = []
+    if hd.run_analysis:
+        _console.print(f"[bold]Analyzing {len(new_deals[:hd.max_display])} hot deal(s)…[/bold]\n")
+        for deal in new_deals[: hd.max_display]:
+            result = analyze_deal(deal, category_hint="")
+            print_analysis(result)
+            analyses.append(result)
+    else:
+        print_deals_table(new_deals[: hd.max_display], show_seen=False)
+
+    print_summary(len(new_deals), len(deals))
+
+    if hd.notify and cfg.pushover.enabled:
+        if analyses:
+            sent = notify_analyses(cfg.pushover, analyses)
+        else:
+            sent = notify_new_deals(cfg.pushover, new_deals[: hd.max_display], "Hot Deals")
+        if sent:
+            _console.print(f"[dim]Pushover: sent {sent} hot deal notification(s).[/dim]")
+
+    return analyses or new_deals
+
+
+def _run_once(cfg, db: DealDatabase) -> tuple[int, int]:
     all_new: int = 0
     all_total: int = 0
 
-    for search in config.searches:
+    for search in cfg.searches:
         print_header(search.name)
 
         deals = fetch_search(
@@ -51,28 +109,30 @@ def _run_once(config, db: DealDatabase) -> tuple[int, int]:
                 new_deals.append(deal)
             else:
                 deal.seen = True
-                if config.show_seen:
+                if cfg.show_seen:
                     new_deals.append(deal)
 
-        print_deals_table(deals[: config.max_deals_display], show_seen=config.show_seen)
+        print_deals_table(deals[: cfg.max_deals_display], show_seen=cfg.show_seen)
         print_summary(len(new_deals), len(deals))
 
-        # Basic notifications (no analysis) when notify_on_run is enabled
-        if new_deals and config.pushover.notify_on_run:
-            sent = notify_new_deals(config.pushover, new_deals, search.name)
+        if new_deals and cfg.pushover.notify_on_run:
+            sent = notify_new_deals(cfg.pushover, new_deals, search.name)
             if sent:
                 _console.print(f"[dim]Pushover: sent {sent} notification(s) for {search.name}.[/dim]")
 
         all_new += len(new_deals)
         all_total += len(deals)
 
-    if fetch_errors:
-        for err in fetch_errors:
-            _console.print(f"[yellow]Warning:[/yellow] {err}")
-        fetch_errors.clear()
+    if cfg.hot_deals.enabled:
+        _check_hot_deals(cfg, db)
 
+    _flush_fetch_errors()
     return all_new, all_total
 
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 @click.group()
 def cli() -> None:
@@ -132,10 +192,7 @@ def analyze(config: str, demo: bool) -> None:
                 if d.id not in seen_ids:
                     deals_with_category.append((d, search.category or search.name))
                     seen_ids.add(d.id)
-        if fetch_errors:
-            for err in fetch_errors:
-                _console.print(f"[yellow]Warning:[/yellow] {err}")
-            fetch_errors.clear()
+        _flush_fetch_errors()
 
     if not deals_with_category:
         _console.print("[dim]No deals to analyze.[/dim]")
@@ -152,6 +209,42 @@ def analyze(config: str, demo: bool) -> None:
         sent = notify_analyses(pushover_cfg, analyses)
         if sent:
             _console.print(f"[dim]Pushover: sent {sent} notification(s).[/dim]")
+
+
+@cli.command()
+@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--watch", "-w", is_flag=True, help="Keep polling on the configured interval.")
+@click.option("--interval", "-i", type=int, default=None, help="Override poll interval (minutes).")
+@click.option("--demo", is_flag=True, help="Show sample hot deals without fetching live data.")
+def hot(config: str, watch: bool, interval: int, demo: bool) -> None:
+    """Show top frontpage deals regardless of category — the truly hot stuff."""
+    if demo:
+        print_hot_header()
+        deals = sample_hot_deals()
+        _console.print(f"[bold]Analyzing {len(deals)} hot deal(s) — looking up reviews…[/bold]\n")
+        for deal in deals:
+            result = analyze_deal(deal, category_hint="")
+            print_analysis(result)
+        print_summary(len(deals), len(deals))
+        return
+
+    cfg = load_config(config)
+    db = DealDatabase(cfg.db_path)
+
+    # Temporarily enable hot deals for this command even if disabled in config
+    cfg.hot_deals.enabled = True
+    poll_minutes = interval or cfg.poll_interval_minutes
+
+    if watch:
+        _console.print(f"[bold]Watching for hot deals every {poll_minutes} minute(s). Ctrl+C to stop.[/bold]\n")
+        while True:
+            _check_hot_deals(cfg, db)
+            _flush_fetch_errors()
+            _console.print(f"[dim]Sleeping {poll_minutes}m until next check…[/dim]")
+            time.sleep(poll_minutes * 60)
+    else:
+        _check_hot_deals(cfg, db)
+        _flush_fetch_errors()
 
 
 @cli.command()

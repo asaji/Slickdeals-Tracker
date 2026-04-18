@@ -83,6 +83,10 @@ def print_header(search_name: str) -> None:
     console.rule(f"[bold yellow]Slickdeals Tracker — {search_name}[/bold yellow]")
 
 
+def print_hot_header() -> None:
+    console.rule("[bold red]🔥  HOT DEALS — Top Frontpage Picks  🔥[/bold red]")
+
+
 def print_summary(new_count: int, total_count: int) -> None:
     console.print(
         f"\n[bold]Summary:[/bold] {new_count} new deal(s) found "

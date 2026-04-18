@@ -6,10 +6,11 @@
 2. [Quick Start](#quick-start)
 3. [CLI Commands](#cli-commands)
 4. [Configuration Reference](#configuration-reference)
-5. [Category System](#category-system)
-6. [Pushover Notifications](#pushover-notifications)
-7. [Running Perpetually](#running-perpetually)
-8. [Tips & Tricks](#tips--tricks)
+5. [Hot Deals](#hot-deals)
+6. [Category System](#category-system)
+7. [Pushover Notifications](#pushover-notifications)
+8. [Running Perpetually](#running-perpetually)
+9. [Tips & Tricks](#tips--tricks)
 
 ---
 
@@ -42,7 +43,10 @@ python main.py run
 # 4. Analyze deals for review scores and value verdicts
 python main.py analyze
 
-# 5. Watch continuously (polls on your configured interval)
+# 5. See today's hottest frontpage deals across all categories
+python main.py hot
+
+# 6. Watch continuously (polls on your configured interval)
 python main.py run --watch
 ```
 
@@ -113,6 +117,28 @@ python main.py analyze [OPTIONS]
 > If you track MacBooks or iPhones, lower `min_verdict_discount` in your
 > config or set a search-specific `min_score: 0` to avoid everything
 > being flagged SKIP.
+
+---
+
+### `hot` — Frontpage hot deals across all categories
+
+```
+python main.py hot [OPTIONS]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--config`, `-c` | `config.yaml` | Path to config file |
+| `--watch`, `-w` | off | Keep polling on the configured interval |
+| `--interval`, `-i` | from config | Override poll interval in minutes |
+| `--demo` | off | Show sample hot deals offline |
+
+```bash
+python main.py hot                     # one-shot
+python main.py hot --watch             # continuous
+python main.py hot --watch --interval 20
+python main.py hot --demo              # preview with sample data
+```
 
 ---
 
@@ -202,6 +228,92 @@ searches:
 | `keywords` | No | Whitelist — deal must match at least one |
 | `exclude` | No | Blacklist — deal is dropped if any match |
 | `min_score` | No | Minimum community upvote count (0 = all deals) |
+
+---
+
+## Hot Deals
+
+The `hot` command monitors the Slickdeals **frontpage** and **popular** RSS feeds
+with **no keyword filter**. Any deal the community has voted onto the front page
+is eligible — TVs, laptops, vacuums, kitchen gadgets, SSDs, whatever. Being on
+the frontpage is itself a quality signal: Slickdeals only promotes deals after
+the community has heavily upvoted them.
+
+### Quick start
+
+```bash
+# One-shot: show today's hottest deals with full review analysis
+python main.py hot
+
+# Preview with sample data (no network needed)
+python main.py hot --demo
+
+# Watch continuously, checking every 30 minutes
+python main.py hot --watch
+
+# Watch with a custom interval
+python main.py hot --watch --interval 15
+```
+
+### Always-on hot deals inside `run --watch`
+
+Enable `hot_deals` in your config to automatically include a hot deals pass
+in every `run` or `run --watch` cycle — no separate command needed:
+
+```yaml
+hot_deals:
+  enabled: true
+  min_score: 0        # 0 = trust frontpage curation; raise to filter further
+  max_display: 10
+  run_analysis: true  # full RTINGS/Tom's Hardware/etc. lookup per deal
+  notify: true        # push Pushover notifications for hot deals
+  exclude:
+    - "credit card"
+    - "gift card"
+```
+
+Then just run the tracker as normal:
+
+```bash
+python main.py run --watch
+# → checks your configured category searches, then appends a hot deals pass
+```
+
+### Configuration reference
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `false` | Include hot deals in every `run`/`run --watch` cycle |
+| `min_score` | `0` | Extra vote threshold on top of frontpage curation. `0` = accept all frontpage items. Set `50`–`100` for only truly viral deals |
+| `max_display` | `10` | Max hot deals shown per check |
+| `run_analysis` | `true` | Run full review analyzer on each hot deal (category auto-detected from title) |
+| `notify` | `true` | Push Pushover notifications for hot deals (uses the main `pushover` credentials) |
+| `exclude` | `[]` | Skip hot deals whose title/summary contains any of these strings |
+
+### How it differs from regular searches
+
+| | Regular `searches` | Hot Deals |
+|---|---|---|
+| **Keyword filter** | Required — deals must match at least one keyword | None — catches everything |
+| **Category** | Explicit per-search | Auto-detected from deal title |
+| **Source** | Search RSS + frontpage | Frontpage + popular RSS only |
+| **Use case** | "I want TVs and SSDs" | "Show me anything the community loves right now" |
+| **Score threshold** | Tunable per search | Single global `min_score` |
+
+### Recommended exclude list
+
+To cut down on noise from financial offers and gift cards:
+
+```yaml
+hot_deals:
+  exclude:
+    - "credit card"
+    - "store card"
+    - "gift card"
+    - "amazon card"
+    - "cash back offer"
+    - "reward"
+```
 
 ---
 

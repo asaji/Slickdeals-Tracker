@@ -109,6 +109,26 @@ def _matches(item: ET.Element, keywords: list[str], exclude: list[str]) -> list[
     return [kw for kw in keywords if kw.lower() in text]
 
 
+def fetch_hot_deals(min_score: int, exclude: list[str]) -> list[Deal]:
+    """Fetch frontpage + popular RSS with no keyword filter.
+
+    Being on these feeds is itself a quality signal — Slickdeals only promotes
+    deals the community has voted up. min_score adds an extra threshold when
+    vote counts are embedded in the RSS description.
+    """
+    deals: dict[str, Deal] = {}
+    for url in [FRONTPAGE_RSS, POPULAR_RSS]:
+        for item in _fetch_rss(url):
+            title = _text(item, "title").lower()
+            desc = re.sub(r"<[^>]+>", "", _text(item, "description")).lower()
+            if any(ex.lower() in (title + " " + desc) for ex in exclude):
+                continue
+            deal = _item_to_deal(item, ["hot"])
+            if deal.score >= min_score and deal.id not in deals:
+                deals[deal.id] = deal
+    return sorted(deals.values(), key=lambda d: d.score, reverse=True)
+
+
 def fetch_frontpage(keywords: list[str], exclude: list[str], min_score: int) -> list[Deal]:
     deals: dict[str, Deal] = {}
     for url in [FRONTPAGE_RSS, POPULAR_RSS]:

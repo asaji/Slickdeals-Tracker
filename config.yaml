@@ -3,6 +3,19 @@ db_path: deals.db
 max_deals_display: 20
 show_seen: false
 
+hot_deals:
+  enabled: false           # set true to include hot deals in every run/watch cycle
+  min_score: 0             # 0 = frontpage inclusion is the signal; raise to e.g. 100 for extra filtering
+  max_display: 10          # how many hot deals to show per check
+  run_analysis: true       # run full review analysis on each hot deal
+  notify: true             # push Pushover notifications for hot deals
+  exclude:                 # skip deals containing these words even if frontpage
+    - "credit card"
+    - "store card"
+    - "gift card"
+    - "amazon card"
+    - "reward"
+
 pushover:
   enabled: false
   api_token: ""          # your Pushover application token

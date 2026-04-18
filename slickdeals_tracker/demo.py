@@ -1,4 +1,5 @@
 """Sample deals for offline demo/testing."""
+# ruff: noqa: E501
 from datetime import datetime, timedelta, timezone
 
 from .models import Deal
@@ -71,5 +72,102 @@ def sample_deals() -> list[Deal]:
             published=now - timedelta(hours=14),
             summary="144Hz gaming TV with Dolby Vision IQ. Top value pick this year.",
             matched_keywords=["qled", "4k", "tv"],
+        ),
+    ]
+
+
+def sample_hot_deals() -> list[Deal]:
+    now = datetime.now(tz=timezone.utc).replace(tzinfo=None)
+    return [
+        Deal(
+            id="hot-1",
+            title='Costco: Dyson V15 Detect Cordless Vacuum + Extra Tool Kit',
+            url="https://slickdeals.net/f/hot-dyson-v15",
+            price="$449.99",
+            original_price="$749.99",
+            score=891,
+            category=None,
+            store="Costco",
+            published=now - timedelta(minutes=30),
+            summary="Dyson V15 Detect bundle, all-time low. 891 thumbs up. Laser detect, HEPA.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-2",
+            title='Samsung 65" QN90D Neo QLED 4K Smart TV',
+            url="https://slickdeals.net/f/hot-samsung-qn90d",
+            price="$899.99",
+            original_price="$1,799.99",
+            score=654,
+            category=None,
+            store="Amazon",
+            published=now - timedelta(hours=1),
+            summary="50% off. Mini-LED, 4K 144Hz. Near all-time low. Free shipping.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-3",
+            title='WD Black SN850X 2TB NVMe M.2 PCIe Gen 4 SSD',
+            url="https://slickdeals.net/f/hot-wd-sn850x",
+            price="$99.99",
+            original_price="$199.99",
+            score=512,
+            category=None,
+            store="Newegg",
+            published=now - timedelta(hours=2),
+            summary="All-time low. 7300MB/s read, 6600MB/s write. 50% off. Use promo code at checkout.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-4",
+            title='Apple AirPods Pro 2 (USB-C) with MagSafe Case',
+            url="https://slickdeals.net/f/hot-airpods-pro-2",
+            price="$169.00",
+            original_price="$249.00",
+            score=478,
+            category=None,
+            store="Amazon",
+            published=now - timedelta(hours=3),
+            summary="32% off, matches all-time low. H2 chip, ANC, Vision Pro support.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-5",
+            title='Instant Pot Duo 7-in-1 Electric Pressure Cooker 8Qt',
+            url="https://slickdeals.net/f/hot-instant-pot",
+            price="$49.99",
+            original_price="$99.99",
+            score=387,
+            category=None,
+            store="Amazon",
+            published=now - timedelta(hours=4),
+            summary="50% off. 8 quart, 7 functions. All-time low. Prime shipping.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-6",
+            title='Logitech MX Master 3S Wireless Mouse',
+            url="https://slickdeals.net/f/hot-mx-master-3s",
+            price="$69.99",
+            original_price="$99.99",
+            score=341,
+            category=None,
+            store="Best Buy",
+            published=now - timedelta(hours=5),
+            summary="30% off. Electromagnetic scroll wheel, 8K DPI, Bolt receiver + Bluetooth.",
+            matched_keywords=["hot"],
+        ),
+        Deal(
+            id="hot-7",
+            title='TP-Link Deco XE75 Pro Wi-Fi 6E Mesh System 3-Pack',
+            url="https://slickdeals.net/f/hot-deco-xe75",
+            price="$179.99",
+            original_price="$349.99",
+            score=298,
+            category=None,
+            store="Amazon",
+            published=now - timedelta(hours=6),
+            summary="48% off 3-pack. Tri-band AXE5400, covers 7,200 sq ft. All-time low.",
+            matched_keywords=["hot"],
         ),
     ]

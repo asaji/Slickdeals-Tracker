@@ -8,6 +8,20 @@ from .notifier import PushoverConfig
 
 
 @dataclass
+class HotDealsConfig:
+    enabled: bool = False
+    # Minimum community vote score; 0 = frontpage inclusion alone is the signal
+    min_score: int = 0
+    # Common junk to filter even from hot feeds (e.g. credit card offers)
+    exclude: list[str] = field(default_factory=list)
+    max_display: int = 10
+    # Run full review analysis on each hot deal (slower but richer output)
+    run_analysis: bool = True
+    # Push Pushover notifications for hot deals (uses main pushover credentials)
+    notify: bool = True
+
+
+@dataclass
 class SearchConfig:
     name: str
     query: str
@@ -25,6 +39,7 @@ class AppConfig:
     max_deals_display: int = 20
     show_seen: bool = False
     pushover: PushoverConfig = field(default_factory=PushoverConfig)
+    hot_deals: HotDealsConfig = field(default_factory=HotDealsConfig)
 
 
 DEFAULT_CONFIG: dict = {
@@ -72,6 +87,16 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         for s in data.get("searches", [])
     ]
 
+    hd = data.get("hot_deals", {}) or {}
+    hot_deals = HotDealsConfig(
+        enabled=hd.get("enabled", False),
+        min_score=hd.get("min_score", 0),
+        exclude=hd.get("exclude", []),
+        max_display=hd.get("max_display", 10),
+        run_analysis=hd.get("run_analysis", True),
+        notify=hd.get("notify", True),
+    )
+
     po = data.get("pushover", {}) or {}
     pushover = PushoverConfig(
         enabled=po.get("enabled", False),
@@ -89,6 +114,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         max_deals_display=data.get("max_deals_display", 20),
         show_seen=data.get("show_seen", False),
         pushover=pushover,
+        hot_deals=hot_deals,
     )
 
 
