@@ -88,3 +88,44 @@ def print_summary(new_count: int, total_count: int) -> None:
         f"\n[bold]Summary:[/bold] {new_count} new deal(s) found "
         f"out of {total_count} fetched.\n"
     )
+
+
+def print_analysis(analysis) -> None:
+    from .analyzer import DealAnalysis
+    a: DealAnalysis = analysis
+
+    verdict_colors = {
+        "GREAT DEAL": "bold green",
+        "GOOD DEAL": "green",
+        "FAIR DEAL": "yellow",
+        "SKIP": "red",
+    }
+    color = verdict_colors.get(a.verdict, "white")
+
+    lines = [
+        f"[bold white]{a.deal.title}[/bold white]",
+        f"[{color}]▶ {a.verdict}[/{color}]  —  {a.verdict_reason}",
+        "",
+        f"  Price     : [cyan]{a.deal.savings_str}[/cyan]"
+        + (f"  [dim]({a.discount_pct:.0f}% off)[/dim]" if a.discount_pct else ""),
+        f"  Panel     : {a.panel_type or 'Unknown'}",
+        f"  Size      : {a.size_inches}\"" if a.size_inches else "  Size      : Unknown",
+        f"  Score     : +{a.deal.score} community votes",
+        f"  Value /10 : [bold]{a.value_score}[/bold]",
+    ]
+
+    if a.review:
+        lines += [
+            "",
+            f"  [dim]Review sentiment score: {a.review.score_estimate}/10[/dim]",
+        ]
+        if a.review.rtings_url:
+            lines.append(f"  [blue underline]RTINGS: {a.review.rtings_url}[/blue underline]")
+        if a.review.expert_verdict and a.review.expert_verdict != "No review data found.":
+            snippet = a.review.expert_verdict[:200]
+            lines.append(f"\n  [dim italic]\"{snippet}…\"[/dim italic]")
+
+    lines.append(f"\n  [blue underline]{a.deal.url}[/blue underline]")
+
+    console.print(Panel("\n".join(lines), expand=False, box=box.ROUNDED))
+    console.print()

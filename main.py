@@ -7,10 +7,11 @@ from pathlib import Path
 import click
 from rich.console import Console
 
+from slickdeals_tracker.analyzer import analyze_deal
 from slickdeals_tracker.config import load_config, write_default_config
 from slickdeals_tracker.database import DealDatabase
 from slickdeals_tracker.demo import sample_deals
-from slickdeals_tracker.display import console, print_deals_table, print_header, print_summary
+from slickdeals_tracker.display import console, print_analysis, print_deals_table, print_header, print_summary
 from slickdeals_tracker.fetcher import fetch_errors, fetch_frontpage, fetch_search
 
 _console = Console()
@@ -99,6 +100,42 @@ def run(config: str, watch: bool, interval: int, demo: bool) -> None:
             time.sleep(poll_minutes * 60)
     else:
         _run_once(cfg, db)
+
+
+@cli.command()
+@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--demo", is_flag=True, help="Analyze sample TV deals without network fetch.")
+def analyze(config: str, demo: bool) -> None:
+    """Fetch deals and run review analysis on each one."""
+    if demo:
+        deals = sample_deals()
+    else:
+        cfg = load_config(config)
+        db = DealDatabase(cfg.db_path)
+        deals = []
+        for search in cfg.searches:
+            fetched = fetch_search(
+                query=search.query,
+                keywords=search.keywords,
+                exclude=search.exclude,
+                min_score=search.min_score,
+            )
+            for d in fetched:
+                if d.id not in {x.id for x in deals}:
+                    deals.append(d)
+        if fetch_errors:
+            for err in fetch_errors:
+                _console.print(f"[yellow]Warning:[/yellow] {err}")
+            fetch_errors.clear()
+
+    if not deals:
+        _console.print("[dim]No deals to analyze.[/dim]")
+        return
+
+    _console.print(f"\n[bold]Analyzing {len(deals)} deal(s) — looking up reviews…[/bold]\n")
+    for deal in sorted(deals, key=lambda d: d.score, reverse=True):
+        result = analyze_deal(deal)
+        print_analysis(result)
 
 
 @cli.command()
