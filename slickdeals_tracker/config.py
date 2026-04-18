@@ -4,6 +4,8 @@ from typing import Optional
 
 import yaml
 
+from .notifier import PushoverConfig
+
 
 @dataclass
 class SearchConfig:
@@ -22,6 +24,7 @@ class AppConfig:
     db_path: str = "deals.db"
     max_deals_display: int = 20
     show_seen: bool = False
+    pushover: PushoverConfig = field(default_factory=PushoverConfig)
 
 
 DEFAULT_CONFIG: dict = {
@@ -69,12 +72,23 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         for s in data.get("searches", [])
     ]
 
+    po = data.get("pushover", {}) or {}
+    pushover = PushoverConfig(
+        enabled=po.get("enabled", False),
+        api_token=po.get("api_token", ""),
+        user_key=po.get("user_key", ""),
+        min_verdict=po.get("min_verdict", "GOOD DEAL"),
+        notify_on_run=po.get("notify_on_run", False),
+        max_per_check=po.get("max_per_check", 5),
+    )
+
     return AppConfig(
         searches=searches,
         poll_interval_minutes=data.get("poll_interval_minutes", 30),
         db_path=data.get("db_path", "deals.db"),
         max_deals_display=data.get("max_deals_display", 20),
         show_seen=data.get("show_seen", False),
+        pushover=pushover,
     )
 
 

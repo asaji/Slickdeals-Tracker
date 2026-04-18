@@ -13,6 +13,7 @@ from slickdeals_tracker.database import DealDatabase
 from slickdeals_tracker.demo import sample_deals
 from slickdeals_tracker.display import console, print_analysis, print_deals_table, print_header, print_summary
 from slickdeals_tracker.fetcher import fetch_errors, fetch_frontpage, fetch_search
+from slickdeals_tracker.notifier import notify_analyses, notify_new_deals, send_test
 
 _console = Console()
 
@@ -24,7 +25,6 @@ def _run_once(config, db: DealDatabase) -> tuple[int, int]:
     for search in config.searches:
         print_header(search.name)
 
-        # Fetch from both frontpage/popular and targeted search
         deals = fetch_search(
             query=search.query,
             keywords=search.keywords,
@@ -37,7 +37,6 @@ def _run_once(config, db: DealDatabase) -> tuple[int, int]:
             min_score=search.min_score,
         )
 
-        # Merge, deduplicate
         seen_ids: set[str] = {d.id for d in deals}
         for d in frontpage_deals:
             if d.id not in seen_ids:
@@ -57,6 +56,12 @@ def _run_once(config, db: DealDatabase) -> tuple[int, int]:
 
         print_deals_table(deals[: config.max_deals_display], show_seen=config.show_seen)
         print_summary(len(new_deals), len(deals))
+
+        # Basic notifications (no analysis) when notify_on_run is enabled
+        if new_deals and config.pushover.notify_on_run:
+            sent = notify_new_deals(config.pushover, new_deals, search.name)
+            if sent:
+                _console.print(f"[dim]Pushover: sent {sent} notification(s) for {search.name}.[/dim]")
 
         all_new += len(new_deals)
         all_total += len(deals)
@@ -106,12 +111,14 @@ def run(config: str, watch: bool, interval: int, demo: bool) -> None:
 @click.option("--config", "-c", default="config.yaml", help="Path to config file.")
 @click.option("--demo", is_flag=True, help="Analyze sample TV deals without network fetch.")
 def analyze(config: str, demo: bool) -> None:
-    """Fetch deals and run review analysis on each one."""
+    """Fetch deals, score them with review analysis, and push Pushover notifications."""
     if demo:
         deals_with_category = [(d, "TVs") for d in sample_deals()]
+        pushover_cfg = None
     else:
         cfg = load_config(config)
         db = DealDatabase(cfg.db_path)
+        pushover_cfg = cfg.pushover
         deals_with_category: list[tuple] = []
         seen_ids: set[str] = set()
         for search in cfg.searches:
@@ -135,9 +142,16 @@ def analyze(config: str, demo: bool) -> None:
         return
 
     _console.print(f"\n[bold]Analyzing {len(deals_with_category)} deal(s) — looking up reviews…[/bold]\n")
+    analyses = []
     for deal, category in sorted(deals_with_category, key=lambda x: x[0].score, reverse=True):
         result = analyze_deal(deal, category_hint=category)
         print_analysis(result)
+        analyses.append(result)
+
+    if pushover_cfg:
+        sent = notify_analyses(pushover_cfg, analyses)
+        if sent:
+            _console.print(f"[dim]Pushover: sent {sent} notification(s).[/dim]")
 
 
 @cli.command()
@@ -149,6 +163,25 @@ def history(config: str, limit: int) -> None:
     db = DealDatabase(cfg.db_path)
     deals = db.get_recent_deals(limit)
     print_deals_table(deals, show_seen=True)
+
+
+@cli.command("notify-test")
+@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+def notify_test(config: str) -> None:
+    """Send a test Pushover notification to verify your credentials."""
+    cfg = load_config(config)
+    if not cfg.pushover.enabled:
+        _console.print("[yellow]Pushover is disabled in config. Set enabled: true to use it.[/yellow]")
+        return
+    if not cfg.pushover.api_token or not cfg.pushover.user_key:
+        _console.print("[red]api_token and user_key must both be set in the pushover config.[/red]")
+        return
+    _console.print("Sending test notification…")
+    ok = send_test(cfg.pushover)
+    if ok:
+        _console.print("[green]✓ Test notification sent successfully.[/green]")
+    else:
+        _console.print("[red]✗ Failed to send — check your api_token and user_key.[/red]")
 
 
 @cli.command()

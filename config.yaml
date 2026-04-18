@@ -3,6 +3,14 @@ db_path: deals.db
 max_deals_display: 20
 show_seen: false
 
+pushover:
+  enabled: false
+  api_token: ""          # your Pushover application token
+  user_key: ""           # your Pushover user/group key
+  min_verdict: "GOOD DEAL"   # notify for GOOD DEAL and GREAT DEAL only
+  notify_on_run: false   # also notify on plain `run` (no analysis required)
+  max_per_check: 5       # cap notifications per poll cycle
+
 searches:
 
   - name: TVs
