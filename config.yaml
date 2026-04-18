@@ -1,0 +1,58 @@
+poll_interval_minutes: 30
+db_path: deals.db
+max_deals_display: 20
+show_seen: false
+
+searches:
+  - name: TVs
+    query: TV
+    keywords:
+      - tv
+      - television
+      - oled
+      - qled
+      - 4k
+      - 8k
+      - uhd
+      - hdtv
+      - smart tv
+    exclude:
+      - monitor
+      - projector
+      - streaming stick
+      - firestick
+    min_score: 10
+
+  - name: Laptops
+    query: laptop
+    keywords:
+      - laptop
+      - notebook
+      - chromebook
+      - macbook
+      - thinkpad
+      - ultrabook
+    exclude:
+      - case
+      - bag
+      - sleeve
+      - stand
+      - charger
+    min_score: 10
+
+  - name: Gaming
+    query: gaming
+    keywords:
+      - ps5
+      - xbox
+      - nintendo
+      - switch
+      - gaming
+      - gpu
+      - graphics card
+      - rtx
+      - rx 7
+    exclude:
+      - controller skin
+      - sticker
+    min_score: 15
