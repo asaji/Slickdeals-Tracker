@@ -480,7 +480,7 @@
         <td><div class="tag-list">${kwTags || '<span style="color:#475569">any</span>'}</div></td>
         <td><div class="tag-list">${exTags || '—'}</div></td>
         <td>${r.min_score}</td>
-        <td><button class="btn-danger" onclick="deleteRule(${JSON.stringify(esc(r.name))})">Remove</button></td>
+        <td><button class="btn-danger" data-name="${esc(r.name)}" onclick="deleteRule(this.dataset.name)">Remove</button></td>
       </tr>`;
     }).join('');
   }
