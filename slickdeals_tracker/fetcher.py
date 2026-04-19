@@ -18,8 +18,12 @@ SEARCH_RSS_TEMPLATE = (
     "?src=SearchBarV2&q={query}&searcharea=deals&searchin=first_word&rss=1"
 )
 
-_PRICE_RE    = re.compile(r"\$[\d,]+(?:\.\d{2})?")
-_SCORE_RE    = re.compile(r"(\d+)\s*(?:votes?|thumbs?(?:\s+up)?|thumb)", re.IGNORECASE)
+_PRICE_RE = re.compile(r"\$[\d,]+(?:\.\d{2})?")
+_SCORE_RE = re.compile(
+    r"Thumb\s+Score:\s*[+-]?(\d+)"           # Slickdeals format: "Thumb Score: +14"
+    r"|(\d+)\s*(?:votes?|thumbs?(?:\s+up)?)", # fallback: "14 thumbs up"
+    re.IGNORECASE,
+)
 _STORE_SEP_RE = re.compile(r"\s+(?:at|from|@)\s+", re.IGNORECASE)
 
 # Realistic browser headers — slickdeals blocks obvious bot UAs
@@ -102,21 +106,19 @@ def _extract_price(text: str) -> tuple[Optional[str], Optional[str]]:
 
 
 def _extract_score(item: ET.Element) -> int:
-    """Search every field in the RSS item for a vote/score count."""
-    # Collect all text from all child elements
-    all_text = " ".join((child.text or "") for child in item)
-    all_text += " " + _clean(all_text)  # also search with HTML stripped
+    """Extract the Thumb Score from an RSS item.
 
-    m = _SCORE_RE.search(all_text)
-    if m:
-        return int(m.group(1))
+    Slickdeals puts 'Thumb Score: +N' inside the content:encoded HTML field.
+    """
+    # Concatenate raw text of all child elements, then also strip HTML for a clean pass
+    raw = " ".join((child.text or "") for child in item)
+    cleaned = _clean(raw)
 
-    # Slickdeals sometimes puts score as a standalone number in a custom element
-    # e.g. <score>245</score> or <sd:score>245</sd:score>
-    for child in item:
-        tag = child.tag.lower().split("}")[-1]  # strip namespace
-        if tag in ("score", "rating", "votes", "hotness") and (child.text or "").strip().lstrip("-").isdigit():
-            return max(0, int(child.text.strip()))
+    for text in (cleaned, raw):
+        m = _SCORE_RE.search(text)
+        if m:
+            # Group 1: "Thumb Score: +14" pattern; Group 2: "14 thumbs" fallback
+            return int(m.group(1) or m.group(2) or 0)
 
     return 0
 
@@ -133,11 +135,23 @@ def _parse_date(date_str: str) -> datetime:
         return datetime.utcnow()
 
 
+_CONTENT_NS = "{http://purl.org/rss/1.0/modules/content/}encoded"
+_IMG_RE = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
+
+
 def _item_to_deal(item: ET.Element, matched_keywords: list[str]) -> Deal:
     title = _text(item, "title")
     url = _text(item, "link")
     pub_date = _parse_date(_text(item, "pubDate"))
-    summary = _clean(_text(item, "description"))[:300]
+
+    # content:encoded has the full HTML; description is the short plain-text preview
+    content_html = _text(item, _CONTENT_NS)
+    short_desc = _text(item, "description")
+    summary = _clean(content_html or short_desc)[:300]
+
+    # Extract image from content:encoded <img> tag
+    img_match = _IMG_RE.search(content_html)
+    image_url = img_match.group(1) if img_match else None
 
     price, original_price = _extract_price(title + " " + summary)
     score = _extract_score(item)
@@ -155,6 +169,7 @@ def _item_to_deal(item: ET.Element, matched_keywords: list[str]) -> Deal:
         store=store,
         published=pub_date,
         summary=summary,
+        image_url=image_url,
         matched_keywords=matched_keywords,
     )
 
