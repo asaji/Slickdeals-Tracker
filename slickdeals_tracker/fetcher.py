@@ -47,7 +47,6 @@ def _fetch_rss(url: str) -> list[ET.Element]:
     try:
         resp = _session.get(url, timeout=20)
         resp.raise_for_status()
-        # Guard: if we got HTML back instead of XML, the request was intercepted
         ct = resp.headers.get("Content-Type", "")
         if "html" in ct and "xml" not in ct:
             fetch_errors.append(
@@ -64,6 +63,22 @@ def _fetch_rss(url: str) -> list[ET.Element]:
     except Exception as e:
         fetch_errors.append(f"Error fetching {url}: {e}")
         return []
+
+
+def fetch_raw_sample(url: str, limit: int = 3) -> list[dict]:
+    """Return raw fields from the first N RSS items — used by the debug endpoint."""
+    try:
+        resp = _session.get(url, timeout=20)
+        resp.raise_for_status()
+        root = ET.fromstring(resp.content)
+        items = root.findall(".//item")
+        out = []
+        for item in items[:limit]:
+            fields = {child.tag: (child.text or "") for child in item}
+            out.append(fields)
+        return out
+    except Exception as e:
+        return [{"error": str(e)}]
 
 
 def _text(item: ET.Element, tag: str) -> str:
@@ -86,9 +101,24 @@ def _extract_price(text: str) -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 
-def _extract_score(text: str) -> int:
-    m = _SCORE_RE.search(text)
-    return int(m.group(1)) if m else 0
+def _extract_score(item: ET.Element) -> int:
+    """Search every field in the RSS item for a vote/score count."""
+    # Collect all text from all child elements
+    all_text = " ".join((child.text or "") for child in item)
+    all_text += " " + _clean(all_text)  # also search with HTML stripped
+
+    m = _SCORE_RE.search(all_text)
+    if m:
+        return int(m.group(1))
+
+    # Slickdeals sometimes puts score as a standalone number in a custom element
+    # e.g. <score>245</score> or <sd:score>245</sd:score>
+    for child in item:
+        tag = child.tag.lower().split("}")[-1]  # strip namespace
+        if tag in ("score", "rating", "votes", "hotness") and (child.text or "").strip().lstrip("-").isdigit():
+            return max(0, int(child.text.strip()))
+
+    return 0
 
 
 def _extract_store(title: str) -> Optional[str]:
@@ -110,7 +140,7 @@ def _item_to_deal(item: ET.Element, matched_keywords: list[str]) -> Deal:
     summary = _clean(_text(item, "description"))[:300]
 
     price, original_price = _extract_price(title + " " + summary)
-    score = _extract_score(summary)
+    score = _extract_score(item)
     store = _extract_store(title)
     deal_id = hashlib.md5((url or title).encode()).hexdigest()
 

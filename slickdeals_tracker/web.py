@@ -6,6 +6,7 @@ from flask import Flask, jsonify, render_template, request
 
 from .config import SearchConfig, load_config, save_searches
 from .database import DealDatabase
+from .fetcher import FRONTPAGE_RSS, POPULAR_RSS, SEARCH_RSS_TEMPLATE, fetch_raw_sample
 
 app = Flask(__name__)
 
@@ -75,6 +76,19 @@ def mark_seen(deal_id: str):
     db = _get_db()
     db.mark_seen(deal_id)
     return jsonify({"ok": True})
+
+
+# ── Debug ─────────────────────────────────────────────────────────────────────
+
+@app.route("/api/debug/rss")
+def api_debug_rss():
+    """Return raw fields from the first 3 items of each feed — helps diagnose score extraction."""
+    from urllib.parse import quote_plus
+    results = {
+        "frontpage": fetch_raw_sample(FRONTPAGE_RSS),
+        "popular":   fetch_raw_sample(POPULAR_RSS),
+    }
+    return jsonify(results)
 
 
 # ── Searches / Alert Rules API ─────────────────────────────────────────────────
