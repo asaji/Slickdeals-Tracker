@@ -1,0 +1,28 @@
+services:
+  slickdeals-tracker:
+    build: .
+    container_name: slickdeals-tracker
+    restart: unless-stopped
+    ports:
+      - "7001:7001"
+    volumes:
+      - ./data:/config
+    environment:
+      # Timezone
+      TZ: America/New_York
+
+      # Pushover notifications (leave blank to disable)
+      PUSHOVER_TOKEN: ""
+      PUSHOVER_USER_KEY: ""
+      PUSHOVER_ENABLED: "false"
+
+      # Hot deals frontpage monitor
+      HOT_DEALS_ENABLED: "false"
+      HOT_DEALS_MIN_SCORE: "0"
+
+      # Poll interval in minutes
+      POLL_INTERVAL: "30"
+
+      # Paths inside the container (match the volume mount)
+      CONFIG_PATH: /config/config.yaml
+      DB_PATH: /config/deals.db

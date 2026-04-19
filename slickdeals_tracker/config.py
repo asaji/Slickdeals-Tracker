@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -107,7 +108,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         max_per_check=po.get("max_per_check", 5),
     )
 
-    return AppConfig(
+    cfg = AppConfig(
         searches=searches,
         poll_interval_minutes=data.get("poll_interval_minutes", 30),
         db_path=data.get("db_path", "deals.db"),
@@ -116,6 +117,24 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         pushover=pushover,
         hot_deals=hot_deals,
     )
+
+    # Environment variable overrides (Docker / UnRAID pass these in)
+    if os.getenv("DB_PATH"):
+        cfg.db_path = os.environ["DB_PATH"]
+    if os.getenv("POLL_INTERVAL"):
+        cfg.poll_interval_minutes = int(os.environ["POLL_INTERVAL"])
+    if os.getenv("PUSHOVER_TOKEN"):
+        cfg.pushover.api_token = os.environ["PUSHOVER_TOKEN"]
+    if os.getenv("PUSHOVER_USER_KEY"):
+        cfg.pushover.user_key = os.environ["PUSHOVER_USER_KEY"]
+    if os.getenv("PUSHOVER_ENABLED"):
+        cfg.pushover.enabled = os.environ["PUSHOVER_ENABLED"].lower() == "true"
+    if os.getenv("HOT_DEALS_ENABLED"):
+        cfg.hot_deals.enabled = os.environ["HOT_DEALS_ENABLED"].lower() == "true"
+    if os.getenv("HOT_DEALS_MIN_SCORE"):
+        cfg.hot_deals.min_score = int(os.environ["HOT_DEALS_MIN_SCORE"])
+
+    return cfg
 
 
 def write_default_config(path: str = "config.yaml") -> None:

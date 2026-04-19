@@ -10,7 +10,8 @@
 6. [Category System](#category-system)
 7. [Pushover Notifications](#pushover-notifications)
 8. [Running Perpetually](#running-perpetually)
-9. [Tips & Tricks](#tips--tricks)
+9. [Docker & UnRAID](#docker--unraid)
+10. [Tips & Tricks](#tips--tricks)
 
 ---
 
@@ -571,4 +572,121 @@ sqlite3 deals.db "DELETE FROM deals WHERE matched_keywords LIKE '%tv%';"
 ```bash
 python main.py history --limit 100
 sqlite3 deals.db "SELECT title, price, score FROM deals ORDER BY score DESC LIMIT 20;"
+```
+
+---
+
+## Docker & UnRAID
+
+### Quick start with Docker Compose
+
+```bash
+git clone https://github.com/asaji/Slickdeals-Tracker.git
+cd Slickdeals-Tracker
+
+# Build the image
+docker compose build
+
+# Start the tracker + web dashboard
+docker compose up -d
+
+# Open the dashboard
+open http://localhost:7001
+```
+
+Your `config.yaml` and `deals.db` are stored in `./data/` (bind-mounted to `/config` inside the container).
+
+### Environment variables
+
+All key settings can be passed as Docker environment variables, which override values in `config.yaml`:
+
+| Variable | Default | Description |
+|---|---|---|
+| `TZ` | `America/New_York` | Container timezone |
+| `CONFIG_PATH` | `/config/config.yaml` | Path to config file |
+| `DB_PATH` | `/config/deals.db` | Path to SQLite database |
+| `POLL_INTERVAL` | `30` | Poll interval in minutes |
+| `PUSHOVER_TOKEN` | _(empty)_ | Pushover API token |
+| `PUSHOVER_USER_KEY` | _(empty)_ | Pushover user key |
+| `PUSHOVER_ENABLED` | `false` | Set `true` to enable notifications |
+| `HOT_DEALS_ENABLED` | `false` | Set `true` to monitor frontpage hot deals |
+| `HOT_DEALS_MIN_SCORE` | `0` | Minimum vote score for hot deals |
+| `PUID` | `99` | User ID the container runs as (UnRAID: 99) |
+| `PGID` | `100` | Group ID the container runs as (UnRAID: 100) |
+
+### First-run config
+
+On first run, if no `config.yaml` exists at `CONFIG_PATH`, the tracker generates a default one. To start with your own:
+
+```bash
+mkdir -p ./data
+cp config.yaml ./data/config.yaml
+# Edit ./data/config.yaml to add your searches
+docker compose up -d
+```
+
+### Web dashboard
+
+The dashboard runs on port `7001` and auto-refreshes every 5 minutes.
+
+| URL | Description |
+|---|---|
+| `http://host:7001/` | Deal dashboard |
+| `http://host:7001/api/deals` | JSON deal list |
+| `http://host:7001/api/stats` | Summary statistics |
+| `http://host:7001/health` | Health check endpoint |
+
+### UnRAID installation
+
+**Option A — Community Applications (CA) store** (once the template is listed):
+
+1. In UnRAID, go to **Apps** → search **Slickdeals Tracker** → **Install**
+2. Fill in your Pushover credentials and enable hot deals if desired
+3. Click **Apply** — the container starts and the dashboard is available at `http://tower:7001`
+
+**Option B — Manual template import**:
+
+1. Go to **Docker** tab → **Add Container** → click the template URL field
+2. Paste the template URL:
+   ```
+   https://raw.githubusercontent.com/asaji/Slickdeals-Tracker/main/unraid/slickdeals-tracker.xml
+   ```
+3. Fill in the form fields and click **Apply**
+
+**Option C — docker compose on UnRAID**:
+
+```bash
+# SSH into UnRAID
+ssh root@tower
+
+cd /mnt/user/appdata
+git clone https://github.com/asaji/Slickdeals-Tracker.git
+cd Slickdeals-Tracker
+
+# Edit docker-compose.yml if needed, then:
+docker compose up -d
+```
+
+### Updating
+
+```bash
+# Pull latest image
+docker compose pull
+docker compose up -d
+
+# Or rebuild from source
+docker compose build --no-cache
+docker compose up -d
+```
+
+Your `./data/` volume (config + database) is preserved across updates.
+
+### Logs
+
+```bash
+# All logs
+docker compose logs -f
+
+# Just the tracker
+docker compose logs -f slickdeals-tracker
 ```

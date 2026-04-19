@@ -59,6 +59,8 @@ def _check_hot_deals(cfg, db: DealDatabase) -> list:
         for deal in new_deals[: hd.max_display]:
             result = analyze_deal(deal, category_hint="")
             print_analysis(result)
+            db.save_analysis(deal.id, result.verdict, result.value_score,
+                             result.category, result.discount_pct)
             analyses.append(result)
     else:
         print_deals_table(new_deals[: hd.max_display], show_seen=False)
@@ -203,6 +205,9 @@ def analyze(config: str, demo: bool) -> None:
     for deal, category in sorted(deals_with_category, key=lambda x: x[0].score, reverse=True):
         result = analyze_deal(deal, category_hint=category)
         print_analysis(result)
+        if not demo:
+            db.save_analysis(deal.id, result.verdict, result.value_score,
+                             result.category, result.discount_pct)
         analyses.append(result)
 
     if pushover_cfg:

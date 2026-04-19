@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>SlickdealsTracker</Name>
+  <Repository>ghcr.io/asaji/slickdeals-tracker:latest</Repository>
+  <Registry>https://ghcr.io/</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/asaji/Slickdeals-Tracker</Support>
+  <Project>https://github.com/asaji/Slickdeals-Tracker</Project>
+  <Overview>
+    Monitor Slickdeals.net for deals matching your configured categories (TVs, laptops,
+    SSDs, gaming, and more). Sends Pushover push notifications for great deals and
+    includes a web dashboard to browse tracked deals. Supports hot-deal frontpage
+    monitoring across all categories.
+  </Overview>
+  <Category>Tools: Other:</Category>
+  <WebUI>http://[IP]:[PORT:7001]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/asaji/Slickdeals-Tracker/main/unraid/slickdeals-tracker.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/asaji/Slickdeals-Tracker/main/unraid/icon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+
+  <!-- ── Paths ─────────────────────────────────────────────── -->
+  <Config
+    Name="Config &amp; Data Path"
+    Target="/config"
+    Default="/mnt/user/appdata/slickdeals-tracker"
+    Mode="rw"
+    Description="Stores config.yaml and deals.db. A default config.yaml is created on first run."
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false">/mnt/user/appdata/slickdeals-tracker</Config>
+
+  <!-- ── Ports ──────────────────────────────────────────────── -->
+  <Config
+    Name="Web Dashboard Port"
+    Target="7001"
+    Default="7001"
+    Mode="tcp"
+    Description="Port for the Slickdeals Tracker web dashboard."
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false">7001</Config>
+
+  <!-- ── Pushover ───────────────────────────────────────────── -->
+  <Config
+    Name="Pushover API Token"
+    Target="PUSHOVER_TOKEN"
+    Default=""
+    Description="Your Pushover application API token. Get one at pushover.net."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="true"></Config>
+
+  <Config
+    Name="Pushover User Key"
+    Target="PUSHOVER_USER_KEY"
+    Default=""
+    Description="Your Pushover user key (shown on the Pushover dashboard)."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="true"></Config>
+
+  <Config
+    Name="Enable Pushover Notifications"
+    Target="PUSHOVER_ENABLED"
+    Default="false"
+    Description="Set to true to enable push notifications via Pushover."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false">false</Config>
+
+  <!-- ── Hot Deals ─────────────────────────────────────────── -->
+  <Config
+    Name="Enable Hot Deals Monitor"
+    Target="HOT_DEALS_ENABLED"
+    Default="false"
+    Description="Monitor Slickdeals frontpage for hot deals across ALL categories."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false">false</Config>
+
+  <Config
+    Name="Hot Deals Min Score"
+    Target="HOT_DEALS_MIN_SCORE"
+    Default="0"
+    Description="Minimum community vote count for hot deals. 0 = trust frontpage curation."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false">0</Config>
+
+  <!-- ── Polling ────────────────────────────────────────────── -->
+  <Config
+    Name="Poll Interval (minutes)"
+    Target="POLL_INTERVAL"
+    Default="30"
+    Description="How often to check Slickdeals for new deals."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false">30</Config>
+
+  <!-- ── System ─────────────────────────────────────────────── -->
+  <Config
+    Name="Timezone"
+    Target="TZ"
+    Default="America/New_York"
+    Description="Your timezone, e.g. America/Chicago, America/Los_Angeles, Europe/London."
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false">America/New_York</Config>
+
+  <Config
+    Name="PUID"
+    Target="PUID"
+    Default="99"
+    Description="User ID the container runs as. UnRAID default is 99 (nobody)."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">99</Config>
+
+  <Config
+    Name="PGID"
+    Target="PGID"
+    Default="100"
+    Description="Group ID the container runs as. UnRAID default is 100 (users)."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">100</Config>
+</Container>
