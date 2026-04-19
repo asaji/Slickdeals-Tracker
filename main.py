@@ -142,7 +142,7 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--config", "-c", default=None, help="Path to config file.")
 @click.option("--watch", "-w", is_flag=True, help="Keep running and poll on interval.")
 @click.option("--interval", "-i", type=int, default=None, help="Override poll interval (minutes).")
 @click.option("--demo", is_flag=True, help="Show sample deals without fetching live data.")
@@ -171,7 +171,7 @@ def run(config: str, watch: bool, interval: int, demo: bool) -> None:
 
 
 @cli.command()
-@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--config", "-c", default=None, help="Path to config file.")
 @click.option("--demo", is_flag=True, help="Analyze sample TV deals without network fetch.")
 def analyze(config: str, demo: bool) -> None:
     """Fetch deals, score them with review analysis, and push Pushover notifications."""
@@ -218,7 +218,7 @@ def analyze(config: str, demo: bool) -> None:
 
 
 @cli.command()
-@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--config", "-c", default=None, help="Path to config file.")
 @click.option("--watch", "-w", is_flag=True, help="Keep polling on the configured interval.")
 @click.option("--interval", "-i", type=int, default=None, help="Override poll interval (minutes).")
 @click.option("--demo", is_flag=True, help="Show sample hot deals without fetching live data.")
@@ -254,7 +254,7 @@ def hot(config: str, watch: bool, interval: int, demo: bool) -> None:
 
 
 @cli.command()
-@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--config", "-c", default=None, help="Path to config file.")
 @click.option("--limit", "-n", default=20, help="Number of recent deals to show.")
 def history(config: str, limit: int) -> None:
     """Show recently tracked deals from the database."""
@@ -265,7 +265,7 @@ def history(config: str, limit: int) -> None:
 
 
 @cli.command("notify-test")
-@click.option("--config", "-c", default="config.yaml", help="Path to config file.")
+@click.option("--config", "-c", default=None, help="Path to config file.")
 def notify_test(config: str) -> None:
     """Send a test Pushover notification to verify your credentials."""
     cfg = load_config(config)

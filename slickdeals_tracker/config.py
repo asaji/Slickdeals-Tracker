@@ -68,7 +68,9 @@ DEFAULT_CONFIG: dict = {
 
 
 def load_config(path: Optional[str] = None) -> AppConfig:
-    config_path = Path(path) if path else Path("config.yaml")
+    # Explicit path > CONFIG_PATH env var > hardcoded default
+    resolved = path or os.getenv("CONFIG_PATH", "config.yaml")
+    config_path = Path(resolved)
 
     if config_path.exists():
         with open(config_path) as f:
