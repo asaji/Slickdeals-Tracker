@@ -155,17 +155,18 @@ def run(config: str, watch: bool, interval: int, demo: bool) -> None:
         print_summary(len(deals), len(deals))
         return
 
-    cfg = load_config(config)
-    db = DealDatabase(cfg.db_path)
-    poll_minutes = interval or cfg.poll_interval_minutes
-
     if watch:
-        _console.print(f"[bold]Watching for deals every {poll_minutes} minute(s). Ctrl+C to stop.[/bold]\n")
+        _console.print("[bold]Watching for deals. Ctrl+C to stop.[/bold]\n")
         while True:
+            cfg = load_config(config)   # reload each cycle to pick up web UI changes
+            db = DealDatabase(cfg.db_path)
+            poll_minutes = interval or cfg.poll_interval_minutes
             _run_once(cfg, db)
             _console.print(f"[dim]Sleeping {poll_minutes}m until next check…[/dim]")
             time.sleep(poll_minutes * 60)
     else:
+        cfg = load_config(config)
+        db = DealDatabase(cfg.db_path)
         _run_once(cfg, db)
 
 

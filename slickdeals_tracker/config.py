@@ -140,3 +140,27 @@ def load_config(path: Optional[str] = None) -> AppConfig:
 def write_default_config(path: str = "config.yaml") -> None:
     with open(path, "w") as f:
         yaml.dump(DEFAULT_CONFIG, f, default_flow_style=False, sort_keys=False)
+
+
+def save_searches(searches: list[SearchConfig], path: str) -> None:
+    """Rewrite only the searches list in the config file, preserving all other keys."""
+    config_path = Path(path)
+    if config_path.exists():
+        with open(config_path) as f:
+            data = yaml.safe_load(f) or {}
+    else:
+        data = {}
+
+    data["searches"] = [
+        {
+            "name": s.name,
+            "query": s.query,
+            **({"category": s.category} if s.category else {}),
+            "keywords": s.keywords,
+            "exclude": s.exclude,
+            "min_score": s.min_score,
+        }
+        for s in searches
+    ]
+    with open(config_path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
