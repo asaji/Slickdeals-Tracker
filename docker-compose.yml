@@ -1,6 +1,9 @@
 services:
   slickdeals-tracker:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_HASH: ${GIT_HASH:-dev}
     container_name: slickdeals-tracker
     restart: unless-stopped
     ports:

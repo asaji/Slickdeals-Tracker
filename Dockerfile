@@ -24,9 +24,11 @@ VOLUME ["/config"]
 
 EXPOSE 7001
 
+ARG GIT_HASH=dev
 ENV CONFIG_PATH=/config/config.yaml \
     DB_PATH=/config/deals.db \
-    TZ=America/New_York
+    TZ=America/New_York \
+    APP_VERSION=${GIT_HASH}
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -1,6 +1,7 @@
 """Flask web dashboard for Slickdeals Tracker."""
 
 import os
+import subprocess
 
 from flask import Flask, jsonify, render_template, request
 
@@ -12,6 +13,26 @@ app = Flask(__name__)
 
 _db_path = os.getenv("DB_PATH", "deals.db")
 _config_path = os.getenv("CONFIG_PATH", "config.yaml")
+
+
+def _detect_version() -> str:
+    v = os.getenv("APP_VERSION", "").strip()
+    if v:
+        return v
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=2,
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return "dev"
+
+
+_version = _detect_version()
 
 
 def _get_db() -> DealDatabase:
@@ -26,7 +47,7 @@ def _load_cfg():
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", version=_version)
 
 
 @app.route("/health")
