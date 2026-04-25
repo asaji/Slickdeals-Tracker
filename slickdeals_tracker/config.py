@@ -159,12 +159,19 @@ def save_settings(settings: dict, path: str) -> None:
         if key in settings:
             data[key] = int(settings[key])
 
-    if any(k in settings for k in ("min_verdict", "max_per_check")):
+    pushover_keys = ("min_verdict", "max_per_check", "pushover_enabled", "pushover_token", "pushover_user_key")
+    if any(k in settings for k in pushover_keys):
         po = data.setdefault("pushover", {})
         if "min_verdict" in settings:
             po["min_verdict"] = settings["min_verdict"]
         if "max_per_check" in settings:
             po["max_per_check"] = int(settings["max_per_check"])
+        if "pushover_enabled" in settings:
+            po["enabled"] = bool(settings["pushover_enabled"])
+        if settings.get("pushover_token"):
+            po["api_token"] = settings["pushover_token"]
+        if settings.get("pushover_user_key"):
+            po["user_key"] = settings["pushover_user_key"]
 
     with open(config_path, "w") as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False)

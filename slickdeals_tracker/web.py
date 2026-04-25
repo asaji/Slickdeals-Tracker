@@ -116,13 +116,20 @@ def api_get_settings():
         "min_verdict": cfg.pushover.min_verdict,
         "max_per_check": cfg.pushover.max_per_check,
         "pushover_enabled": cfg.pushover.enabled,
+        "pushover_token": cfg.pushover.api_token,
+        "pushover_user_key": cfg.pushover.user_key,
+        "version": _version,
     })
 
 
 @app.route("/api/settings", methods=["POST"])
 def api_save_settings():
     data = request.get_json(force=True) or {}
-    allowed = {"poll_interval_minutes", "retention_days", "min_verdict", "max_per_check"}
+    allowed = {
+        "poll_interval_minutes", "retention_days",
+        "min_verdict", "max_per_check",
+        "pushover_enabled", "pushover_token", "pushover_user_key",
+    }
     filtered = {k: v for k, v in data.items() if k in allowed}
     try:
         save_settings(filtered, _config_path)

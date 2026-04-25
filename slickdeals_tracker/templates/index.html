@@ -563,6 +563,28 @@
     .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .dot.on  { background: var(--great); box-shadow: 0 0 8px var(--great-glow); }
     .dot.off { background: var(--skip); }
+    .token-status {
+      font-size: 0.7rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    }
+    .token-status.set   { color: var(--great); }
+    .token-status.unset { color: var(--txt-3); }
+    .env-note {
+      font-size: 0.68rem; color: var(--txt-3);
+      background: var(--surf-2); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 0.5rem 0.7rem;
+      margin-top: 0.75rem; line-height: 1.5;
+    }
+    .about-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.3rem 0;
+    }
+    .about-label { font-size: 0.78rem; color: var(--txt-2); font-weight: 500; }
+    .about-hash {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem; color: var(--txt-2);
+      background: var(--surf-2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 8px;
+    }
 
     /* ── Animations ──────────────────────────────────────────── */
     @keyframes card-in {
@@ -715,10 +737,35 @@
     </div>
 
     <div class="panel-card">
-      <div class="panel-card-hdr">Notifications</div>
+      <div class="panel-card-hdr">Pushover Notifications</div>
       <div class="status-row">
         <span class="dot" id="pushoverDot"></span>
-        <span id="pushoverStatus">Pushover: checking…</span>
+        <span id="pushoverStatus">checking…</span>
+      </div>
+      <div class="frow">
+        <label class="flbl">Enable Pushover</label>
+        <select class="fselect" id="s-pushover-enabled">
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label class="flbl">API Token</label>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <input class="finput" type="password" id="s-pushover-token"
+                 placeholder="Enter to set or change" autocomplete="new-password" style="flex:1" />
+          <span class="token-status" id="s-token-status"></span>
+        </div>
+        <span class="fhint">Your Pushover application token — get one at pushover.net</span>
+      </div>
+      <div class="frow">
+        <label class="flbl">User Key</label>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <input class="finput" type="password" id="s-pushover-key"
+                 placeholder="Enter to set or change" autocomplete="new-password" style="flex:1" />
+          <span class="token-status" id="s-key-status"></span>
+        </div>
+        <span class="fhint">Your Pushover user/group key</span>
       </div>
       <div class="frow">
         <label class="flbl">Minimum verdict to notify</label>
@@ -731,6 +778,15 @@
       <div class="frow">
         <label class="flbl">Max notifications per check</label>
         <input class="finput narrow" type="number" id="s-max-per-check" min="1" max="20" value="5" />
+      </div>
+      <p class="env-note">On Unraid, environment variables <code>PUSHOVER_ENABLED</code>, <code>PUSHOVER_TOKEN</code>, and <code>PUSHOVER_USER_KEY</code> take precedence over these settings.</p>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-card-hdr">About</div>
+      <div class="about-row">
+        <span class="about-label">Version</span>
+        <span class="about-hash">{{ version }}</span>
       </div>
     </div>
 
@@ -972,14 +1028,24 @@
   async function loadSettings() {
     try {
       const s = await fetch('/api/settings').then(r => r.json());
-      document.getElementById('s-retention').value     = s.retention_days;
-      document.getElementById('s-poll-interval').value = s.poll_interval_minutes;
-      document.getElementById('s-min-verdict').value   = s.min_verdict;
-      document.getElementById('s-max-per-check').value = s.max_per_check;
+      document.getElementById('s-retention').value        = s.retention_days;
+      document.getElementById('s-poll-interval').value    = s.poll_interval_minutes;
+      document.getElementById('s-pushover-enabled').value = s.pushover_enabled ? 'true' : 'false';
+      document.getElementById('s-min-verdict').value      = s.min_verdict;
+      document.getElementById('s-max-per-check').value    = s.max_per_check;
+
       const dot = document.getElementById('pushoverDot');
       const lbl = document.getElementById('pushoverStatus');
-      dot.className = 'dot ' + (s.pushover_enabled ? 'on' : 'off');
+      dot.className  = 'dot ' + (s.pushover_enabled ? 'on' : 'off');
       lbl.textContent = 'Pushover ' + (s.pushover_enabled ? 'enabled' : 'disabled');
+
+      const setStatus = (elId, isSet) => {
+        const el = document.getElementById(elId);
+        el.textContent = isSet ? '✓ set' : 'not set';
+        el.className   = 'token-status ' + (isSet ? 'set' : 'unset');
+      };
+      setStatus('s-token-status', !!s.pushover_token);
+      setStatus('s-key-status',   !!s.pushover_user_key);
     } catch(e) {}
   }
 
@@ -989,9 +1055,15 @@
     const body = {
       retention_days:        parseInt(document.getElementById('s-retention').value) || 0,
       poll_interval_minutes: parseInt(document.getElementById('s-poll-interval').value) || 30,
+      pushover_enabled:      document.getElementById('s-pushover-enabled').value === 'true',
       min_verdict:           document.getElementById('s-min-verdict').value,
       max_per_check:         parseInt(document.getElementById('s-max-per-check').value) || 5,
     };
+    const token = document.getElementById('s-pushover-token').value.trim();
+    const key   = document.getElementById('s-pushover-key').value.trim();
+    if (token) body.pushover_token    = token;
+    if (key)   body.pushover_user_key = key;
+
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1000,7 +1072,9 @@
     if (res.ok) {
       msg.className = 'msg-ok';
       msg.textContent = 'Saved.';
-      setTimeout(() => msg.textContent = '', 3000);
+      document.getElementById('s-pushover-token').value = '';
+      document.getElementById('s-pushover-key').value   = '';
+      setTimeout(() => { msg.textContent = ''; loadSettings(); }, 1500);
     } else {
       msg.className = 'msg-err';
       msg.textContent = 'Failed to save settings.';
