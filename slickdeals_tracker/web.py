@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
@@ -16,9 +17,19 @@ _config_path = os.getenv("CONFIG_PATH", "config.yaml")
 
 
 def _detect_version() -> str:
+    # Explicit env var wins (e.g. set by orchestrator), but skip the "dev" default
     v = os.getenv("APP_VERSION", "").strip()
-    if v:
+    if v and v != "dev":
         return v
+    # VERSION file baked in at Docker build time
+    version_file = Path(os.path.dirname(os.path.abspath(__file__))).parent / "VERSION"
+    try:
+        v = version_file.read_text().strip()
+        if v and v != "dev":
+            return v
+    except Exception:
+        pass
+    # Local dev fallback: ask git directly
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],

@@ -7,7 +7,7 @@ WORKDIR /app
 
 # supervisor manages the watcher + web UI processes
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends supervisor \
+    && apt-get install -y --no-install-recommends supervisor git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies first (layer cache)
@@ -16,6 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY . .
+
+# Bake git hash into VERSION file (works even when GIT_HASH arg isn't passed)
+RUN git -C /app rev-parse --short HEAD > /app/VERSION 2>/dev/null || echo "dev" > /app/VERSION
 
 # Config and data live in a single mounted volume
 RUN mkdir -p /config
