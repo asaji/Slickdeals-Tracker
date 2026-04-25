@@ -103,26 +103,37 @@ def _run_once(cfg, db: DealDatabase) -> tuple[int, int]:
                 deals.append(d)
                 seen_ids.add(d.id)
 
-        new_deals = []
+        truly_new = []
+        display_deals = []
         for deal in deals:
             if not db.is_seen(deal.id):
                 deal.seen = False
                 db.save_deal(deal)
-                new_deals.append(deal)
+                truly_new.append(deal)
+                display_deals.append(deal)
             else:
                 deal.seen = True
                 if cfg.show_seen:
-                    new_deals.append(deal)
+                    display_deals.append(deal)
 
         print_deals_table(deals[: cfg.max_deals_display], show_seen=cfg.show_seen)
-        print_summary(len(new_deals), len(deals))
+        print_summary(len(truly_new), len(deals))
 
-        if new_deals and cfg.pushover.notify_on_run:
-            sent = notify_new_deals(cfg.pushover, new_deals, search.name)
-            if sent:
-                _console.print(f"[dim]Pushover: sent {sent} notification(s) for {search.name}.[/dim]")
+        if truly_new:
+            category = search.category or search.name
+            analyses = []
+            for deal in sorted(truly_new, key=lambda d: d.score, reverse=True):
+                result = analyze_deal(deal, category_hint=category)
+                print_analysis(result)
+                db.save_analysis(deal.id, result.verdict, result.value_score,
+                                 result.category, result.discount_pct)
+                analyses.append(result)
+            if cfg.pushover.enabled:
+                sent = notify_analyses(cfg.pushover, analyses)
+                if sent:
+                    _console.print(f"[dim]Pushover: sent {sent} notification(s) for {search.name}.[/dim]")
 
-        all_new += len(new_deals)
+        all_new += len(truly_new)
         all_total += len(deals)
 
     if cfg.hot_deals.enabled:
