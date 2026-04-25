@@ -4,261 +4,573 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Slickdeals Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
+    /* ── Variables ───────────────────────────────────────────── */
+    :root {
+      --bg:          #07090D;
+      --surf-1:      #0D1117;
+      --surf-2:      #131B26;
+      --surf-3:      #1A2333;
+      --border:      rgba(255,255,255,0.07);
+      --border-hi:   rgba(255,255,255,0.14);
+      --txt-1:       #EDF2FF;
+      --txt-2:       #8892A4;
+      --txt-3:       #3E4A5E;
+      --accent:      #3B82F6;
+      --great:       #10B981;
+      --great-a:     rgba(16,185,129,0.15);
+      --great-glow:  rgba(16,185,129,0.18);
+      --good:        #34D399;
+      --good-a:      rgba(52,211,153,0.12);
+      --fair:        #F59E0B;
+      --fair-a:      rgba(245,158,11,0.12);
+      --skip:        #EF4444;
+      --skip-a:      rgba(239,68,68,0.12);
+      --gold:        #F59E0B;
+      --r-sm: 6px;  --r-md: 10px;  --r-lg: 14px;
+    }
+
+    /* ── Reset & Base ────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px),
+        radial-gradient(ellipse 90% 55% at 5% 0%,  rgba(59,130,246,0.05) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 50% at 95% 100%, rgba(16,185,129,0.04) 0%, transparent 55%);
+      background-size: 28px 28px, 100% 100%, 100% 100%;
+      color: var(--txt-1);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header ─────────────────────────────────────────────── */
-    header {
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-      padding: 0 1.5rem;
-      display: flex;
-      align-items: stretch;
-      gap: 1.5rem;
+    /* Verdict-spectrum top bar */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--great) 0%, var(--good) 28%, var(--fair) 62%, var(--skip) 100%);
+      z-index: 1000;
+      opacity: 0.65;
     }
-    .header-brand {
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surf-3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 2px;
+      z-index: 200;
+      background: rgba(7,9,13,0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 54px;
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.9rem 0;
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #f8fafc;
-      white-space: nowrap;
+      gap: 2rem;
     }
 
-    /* ── Tabs ──────────────────────────────────────────────── */
-    .tabs {
+    .brand {
       display: flex;
-      gap: 0;
-      margin-left: auto;
+      align-items: center;
+      gap: 0.45rem;
+      text-decoration: none;
+      flex-shrink: 0;
     }
+    .brand-fire { font-size: 1.3rem; line-height: 1; }
+    .brand-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.06em;
+      color: var(--txt-1);
+      line-height: 1;
+    }
+    .brand-name em { color: var(--accent); font-style: normal; }
+
+    .tabs { display: flex; margin-left: auto; height: 100%; }
     .tab-btn {
       background: none;
       border: none;
-      border-bottom: 3px solid transparent;
-      color: #64748b;
+      border-bottom: 2px solid transparent;
+      color: var(--txt-3);
       cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 600;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
       padding: 0 1.1rem;
+      height: 100%;
       transition: color 0.15s, border-color 0.15s;
     }
-    .tab-btn:hover { color: #cbd5e1; }
-    .tab-btn.active { color: #f8fafc; border-bottom-color: #3b82f6; }
+    .tab-btn:hover  { color: var(--txt-2); }
+    .tab-btn.active { color: var(--txt-1); border-bottom-color: var(--accent); }
 
-    /* ── Stats bar ─────────────────────────────────────────── */
-    .stats-bar {
+    /* ── Stats Strip ─────────────────────────────────────────── */
+    .stats-strip {
       display: flex;
-      gap: 0.75rem;
-      padding: 0.75rem 1.5rem;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 0;
+      padding: 0 1.5rem;
+      background: var(--surf-1);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
     }
-    .stat-chip {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 0.35rem 0.8rem;
-      font-size: 0.82rem;
-      color: #94a3b8;
-    }
-    .stat-chip strong { color: #f8fafc; }
+    .stats-strip::-webkit-scrollbar { display: none; }
 
-    /* ── Toolbar ───────────────────────────────────────────── */
-    .toolbar {
-      padding: 0.65rem 1.5rem;
+    .stat-block {
       display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0.65rem 1.5rem 0.65rem 0;
+      gap: 0.08rem;
+      flex-shrink: 0;
+    }
+    .stat-block + .stat-block {
+      border-left: 1px solid var(--border);
+      padding-left: 1.5rem;
+    }
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--txt-1);
+    }
+    .stat-val.c-great { color: var(--great); }
+    .stat-val.c-good  { color: var(--good);  }
+    .stat-key {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--txt-3);
+    }
+    .stat-spacer { flex: 1; }
+    .stat-cats {
+      display: flex;
       align-items: center;
-      border-bottom: 1px solid #1e293b;
+      gap: 0.35rem;
+      padding: 0.65rem 0;
+      flex-shrink: 0;
     }
-    .toolbar input[type=search] {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
-      border-radius: 6px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.85rem;
-      width: 210px;
+    .cat-chip {
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.18rem 0.6rem;
+      font-size: 0.7rem;
+      color: var(--txt-2);
+      white-space: nowrap;
     }
-    .filter-btn {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #94a3b8;
-      border-radius: 6px;
-      padding: 0.3rem 0.7rem;
-      font-size: 0.78rem;
+    .cat-chip strong { color: var(--txt-1); font-weight: 600; }
+
+    /* ── Filter Bar ──────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.55rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .search-wrap { position: relative; flex-shrink: 0; }
+    .search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.6rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--txt-3);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .search-input {
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      color: var(--txt-1);
+      border-radius: var(--r-sm);
+      padding: 0.3rem 0.7rem 0.3rem 1.9rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.8rem;
+      width: 195px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .search-input:focus   { outline: none; border-color: var(--accent); background: var(--surf-3); }
+    .search-input::placeholder { color: var(--txt-3); }
+
+    .chip {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--txt-3);
+      border-radius: 20px;
+      padding: 0.22rem 0.7rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
-    .filter-btn:hover, .filter-btn.active { background: #334155; color: #f8fafc; border-color: #64748b; }
-    .filter-btn.great.active { background: #14532d; border-color: #22c55e; color: #86efac; }
-    .filter-btn.good.active  { background: #14532d; border-color: #86efac; color: #bbf7d0; }
-    .filter-btn.fair.active  { background: #451a03; border-color: #fbbf24; color: #fde68a; }
-    .filter-btn.skip.active  { background: #450a0a; border-color: #f87171; color: #fca5a5; }
-    .filter-btn.saved-filter.active { background: #422006; border-color: #fbbf24; color: #fde68a; }
-    .refresh-info { margin-left: auto; font-size: 0.73rem; color: #475569; }
+    .chip:hover { border-color: var(--border-hi); color: var(--txt-2); }
+    .chip.active           { background: var(--surf-2); border-color: var(--border-hi); color: var(--txt-1); }
+    .chip.great.active     { background: var(--great-a); border-color: var(--great); color: var(--great); }
+    .chip.good.active      { background: var(--good-a);  border-color: var(--good);  color: var(--good); }
+    .chip.fair.active      { background: var(--fair-a);  border-color: var(--fair);  color: var(--fair); }
+    .chip.skip.active      { background: var(--skip-a);  border-color: var(--skip);  color: var(--skip); }
+    .chip.saved-f.active   { background: rgba(245,158,11,0.12); border-color: var(--gold); color: var(--gold); }
 
-    /* ── Deal cards ────────────────────────────────────────── */
-    main { padding: 1rem 1.5rem; }
+    .filter-ts { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--txt-3); flex-shrink: 0; }
 
+    /* ── Deal Grid ───────────────────────────────────────────── */
+    .deals-main { padding: 1rem 1.5rem; }
     .deals-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
+      gap: 0.85rem;
     }
+
+    /* ── Deal Card ───────────────────────────────────────────── */
     .deal-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 10px;
+      background: var(--surf-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      transition: border-color 0.15s;
+      cursor: default;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      animation: card-in 0.22s ease both;
     }
-    .deal-card:hover { border-color: #64748b; }
-    .deal-card.seen { opacity: 0.45; }
-    .deal-card.card-saved { border-top: 2px solid #fbbf24; }
+    .deal-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-hi);
+      box-shadow: 0 10px 36px rgba(0,0,0,0.55);
+    }
+    .deal-card.is-seen { opacity: 0.38; }
+    .deal-card.is-saved { border-top: 2px solid rgba(245,158,11,0.6); }
 
-    .card-img { width: 100%; height: 130px; object-fit: cover; background: #0f172a; }
-    .card-img-placeholder {
-      width: 100%; height: 130px; background: #0f172a;
-      display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+    /* Verdict-tinted border for great deals */
+    .deal-card[data-verdict="GREAT DEAL"] {
+      border-color: rgba(16,185,129,0.22);
+      animation: card-in 0.22s ease both, great-pulse 4s ease-in-out 0.4s infinite;
     }
-    .card-body { padding: 0.8rem; flex: 1; display: flex; flex-direction: column; gap: 0.45rem; }
+    .deal-card[data-verdict="GREAT DEAL"]:hover {
+      border-color: rgba(16,185,129,0.5);
+      box-shadow: 0 10px 40px rgba(16,185,129,0.1);
+    }
+
+    /* ── Card Image ──────────────────────────────────────────── */
+    .card-media {
+      position: relative;
+      height: 145px;
+      background: var(--surf-2);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .card-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .deal-card:hover .card-img { transform: scale(1.04); }
+    .card-img-ph {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.2rem;
+    }
+    .card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 35%, rgba(13,17,23,0.85) 100%);
+    }
+
+    /* Verdict badge over image */
+    .card-vbadge {
+      position: absolute;
+      bottom: 8px; left: 8px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 2px 8px 3px;
+      border-radius: 4px;
+      line-height: 1.4;
+    }
+    .vb-great-deal { background: var(--great); color: #022c1e; }
+    .vb-good-deal  { background: var(--good);  color: #022c1e; }
+    .vb-fair-deal  { background: var(--fair);  color: #3d1f00; }
+    .vb-skip       { background: var(--skip);  color: #fff; }
+
+    /* Save button over image */
+    .card-save-btn {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: rgba(7,9,13,0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--r-sm);
+      color: var(--txt-3);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 4px 8px;
+      transition: all 0.15s;
+    }
+    .card-save-btn:hover        { color: var(--gold); border-color: rgba(245,158,11,0.5); }
+    .card-save-btn.is-saved     { color: var(--gold); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.12); }
+
+    /* ── Card Body ───────────────────────────────────────────── */
+    .card-body {
+      padding: 0.75rem 0.9rem 0.55rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
     .card-title {
-      font-size: 0.88rem; font-weight: 600; color: #f1f5f9; line-height: 1.4;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--txt-1);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
-    .card-meta { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
-
-    .badge { border-radius: 4px; padding: 0.12rem 0.45rem; font-size: 0.7rem; font-weight: 600;
-             text-transform: uppercase; letter-spacing: 0.03em; }
-    .badge-verdict  { color: #0f172a; }
-    .badge-category { background: #1e3a5f; color: #93c5fd; }
-    .badge-store    { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-
-    .card-price { font-size: 1rem; font-weight: 700; color: #22c55e; }
-    .card-price .was { font-size: 0.78rem; color: #64748b; font-weight: 400; text-decoration: line-through; }
-    .card-price .discount { font-size: 0.73rem; color: #fbbf24; font-weight: 600; }
-
-    .card-footer {
-      padding: 0.55rem 0.8rem; border-top: 1px solid #334155;
-      display: flex; align-items: center; gap: 0.5rem;
+    .card-meta { display: flex; flex-wrap: wrap; gap: 0.28rem; align-items: center; }
+    .badge-cat {
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 4px;
+      color: #93C5FD;
+      font-size: 0.63rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
-    .card-footer .score { font-size: 0.73rem; color: #64748b; }
-    .card-footer .score strong { color: #94a3b8; }
+    .badge-store {
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--txt-2);
+      font-size: 0.63rem;
+      padding: 1px 6px;
+    }
 
-    .btn-primary {
-      background: #3b82f6; color: #fff; border: none; border-radius: 6px;
-      padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 600;
-      cursor: pointer; text-decoration: none; transition: background 0.15s;
+    /* ── Card Footer ─────────────────────────────────────────── */
+    .card-foot {
+      padding: 0.58rem 0.9rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-danger {
-      background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444;
-      border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.75rem;
-      font-weight: 600; cursor: pointer; transition: background 0.15s;
+    .price-group { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem; min-width: 0; }
+    .price-now {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--great);
+      white-space: nowrap;
     }
-    .btn-danger:hover { background: #991b1b; }
-    .btn-save {
-      background: none; border: 1px solid #334155; border-radius: 6px;
-      color: #475569; cursor: pointer; font-size: 1rem; line-height: 1;
-      padding: 0.25rem 0.45rem; transition: all 0.15s;
+    .price-was {
+      font-size: 0.7rem;
+      color: var(--txt-3);
+      text-decoration: line-through;
+      white-space: nowrap;
     }
-    .btn-save:hover { color: #fbbf24; border-color: #fbbf24; }
-    .btn-save.saved { color: #fbbf24; border-color: #fbbf24; }
+    .price-off {
+      font-size: 0.64rem;
+      font-weight: 800;
+      background: var(--fair-a);
+      color: var(--fair);
+      border-radius: 3px;
+      padding: 1px 5px;
+      white-space: nowrap;
+    }
+    .score-lbl { font-size: 0.68rem; color: var(--txt-3); white-space: nowrap; flex-shrink: 0; }
+    .btn-view {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-sm);
+      padding: 0.28rem 0.65rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.73rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      display: inline-block;
+    }
+    .btn-view:hover { background: #2563EB; }
 
+    /* ── Empty State ─────────────────────────────────────────── */
     .empty-state {
-      text-align: center; padding: 4rem 1rem; color: #475569; grid-column: 1 / -1;
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 5rem 1rem;
+      color: var(--txt-3);
     }
-    .empty-state p { margin-top: 0.5rem; font-size: 0.9rem; }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty-state p { font-size: 0.88rem; }
 
-    /* ── Alert Rules tab ───────────────────────────────────── */
-    .alerts-panel { padding: 1.5rem; max-width: 860px; }
-    .alerts-panel h2 { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1rem; }
-
-    .rules-table {
-      width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-bottom: 2rem;
+    /* ── Shared Panel ────────────────────────────────────────── */
+    .panel { padding: 1.5rem; max-width: 900px; }
+    .panel-h {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.25rem;
+      letter-spacing: 0.07em;
+      color: var(--txt-1);
+      margin-bottom: 1.25rem;
     }
-    .rules-table th {
-      text-align: left; padding: 0.5rem 0.75rem; color: #64748b;
-      border-bottom: 1px solid #334155; font-weight: 600; font-size: 0.75rem;
-      text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    .rules-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1e293b; vertical-align: top; }
-    .rules-table tr:last-child td { border-bottom: none; }
-    .rules-table tr:hover td { background: #1e293b; }
-    .tag-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-    .tag {
-      background: #0f172a; border: 1px solid #334155; border-radius: 4px;
-      padding: 0.1rem 0.4rem; font-size: 0.72rem; color: #94a3b8;
-    }
-    .no-rules { color: #475569; font-style: italic; padding: 1rem 0.75rem; }
-
-    /* ── Add alert form ────────────────────────────────────── */
-    .add-form {
-      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    .panel-card {
+      background: var(--surf-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
       padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
     }
-    .add-form h3 { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1rem; }
-    .form-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;
+    .panel-card-hdr {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--txt-3);
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border);
     }
-    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
-    .form-group.full { grid-column: 1 / -1; }
-    .form-group label { font-size: 0.78rem; color: #94a3b8; font-weight: 600; }
-    .form-group small { font-size: 0.72rem; color: #475569; margin-top: -0.15rem; }
-    .form-group input, .form-group select {
-      background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
-      border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.85rem;
-    }
-    .form-group input:focus, .form-group select:focus {
-      outline: none; border-color: #3b82f6;
-    }
-    .form-group select option { background: #1e293b; }
-    .form-actions { margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; }
-    .form-error { color: #f87171; font-size: 0.8rem; }
-    .form-success { color: #86efac; font-size: 0.8rem; }
 
-    /* ── Settings tab ──────────────────────────────────────── */
-    .settings-panel { padding: 1.5rem; max-width: 560px; }
-    .settings-panel h2 { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1.5rem; }
-    .settings-section {
-      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
-      padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    /* ── Forms ───────────────────────────────────────────────── */
+    .frow { display: flex; flex-direction: column; gap: 0.28rem; margin-bottom: 0.85rem; }
+    .frow:last-of-type { margin-bottom: 0; }
+    .frow.cols { flex-direction: row; flex-wrap: wrap; gap: 0.85rem; }
+    .frow.cols > .frow { flex: 1; min-width: 155px; margin-bottom: 0; }
+
+    .flbl {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--txt-2);
+      display: flex; align-items: center; gap: 0.3rem;
     }
-    .settings-section h3 {
-      font-size: 0.88rem; font-weight: 700; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem;
+    .flbl .req { color: var(--skip); }
+    .fhint { font-size: 0.68rem; color: var(--txt-3); }
+
+    .finput, .fselect {
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      color: var(--txt-1);
+      border-radius: var(--r-sm);
+      padding: 0.42rem 0.7rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.83rem;
+      width: 100%;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .settings-section .form-group { margin-bottom: 0.75rem; }
-    .settings-section .form-group:last-child { margin-bottom: 0; }
-    .pushover-status {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.85rem; color: #94a3b8; padding: 0.4rem 0;
+    .finput:focus, .fselect:focus { outline: none; border-color: var(--accent); background: var(--surf-3); }
+    .finput::placeholder { color: var(--txt-3); }
+    .fselect option { background: var(--surf-2); }
+    .finput.narrow { width: 120px; }
+
+    .faction { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.1rem; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff; border: none;
+      border-radius: var(--r-sm);
+      padding: 0.42rem 1.1rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
     }
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
+    .btn-primary:hover { background: #2563EB; }
+    .btn-danger {
+      background: transparent;
+      color: var(--skip);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--r-sm);
+      padding: 0.28rem 0.6rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.72rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
     }
-    .status-dot.on  { background: #22c55e; }
-    .status-dot.off { background: #ef4444; }
+    .btn-danger:hover { background: var(--skip-a); border-color: var(--skip); }
+    .msg-ok  { color: var(--great); font-size: 0.78rem; }
+    .msg-err { color: var(--skip);  font-size: 0.78rem; }
+
+    /* ── Alert Rules Table ───────────────────────────────────── */
+    .rules-tbl { width: 100%; border-collapse: collapse; font-size: 0.81rem; margin-bottom: 1.25rem; }
+    .rules-tbl th {
+      text-align: left; padding: 0 0.75rem 0.55rem;
+      color: var(--txt-3); font-size: 0.62rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      border-bottom: 1px solid var(--border);
+    }
+    .rules-tbl td {
+      padding: 0.62rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      vertical-align: middle;
+      color: var(--txt-1);
+    }
+    .rules-tbl tr:last-child td { border-bottom: none; }
+    .rules-tbl tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.22rem; }
+    .tag {
+      background: var(--surf-3);
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.66rem;
+      color: var(--txt-2);
+    }
+    .no-rules { color: var(--txt-3); font-style: italic; padding: 1.5rem 0.75rem; text-align: center; }
+
+    /* ── Settings Specifics ──────────────────────────────────── */
+    .settings-panel { max-width: 540px; }
+    .status-row {
+      display: flex; align-items: center; gap: 0.55rem;
+      font-size: 0.83rem; color: var(--txt-2);
+      padding: 0.25rem 0; margin-bottom: 0.85rem;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot.on  { background: var(--great); box-shadow: 0 0 8px var(--great-glow); }
+    .dot.off { background: var(--skip); }
+
+    /* ── Animations ──────────────────────────────────────────── */
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes great-pulse {
+      0%, 100% { box-shadow: 0 0  0 0   rgba(16,185,129,0); }
+      50%       { box-shadow: 0 0 28px 0 rgba(16,185,129,0.14); }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="header-brand">🔥 Slickdeals Tracker</div>
+  <div class="brand">
+    <span class="brand-fire">🔥</span>
+    <span class="brand-name">SLICK<em>DEALS</em> TRACKER</span>
+  </div>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="deals"    onclick="showTab('deals')">Deals</button>
     <button class="tab-btn"        data-tab="alerts"   onclick="showTab('alerts')">Alert Rules</button>
@@ -266,101 +578,101 @@
   </nav>
 </header>
 
-<!-- ── Deals tab ──────────────────────────────────────────────────────────── -->
+<!-- ── Deals Tab ─────────────────────────────────────────────────────────── -->
 <div id="tab-deals">
-  <div class="stats-bar" id="statsBar">
-    <div class="stat-chip">Loading…</div>
+  <div class="stats-strip" id="statsBar">
+    <div class="stat-block"><div class="stat-val"         id="st-total">—</div><div class="stat-key">Total</div></div>
+    <div class="stat-block"><div class="stat-val"         id="st-today">—</div><div class="stat-key">Today</div></div>
+    <div class="stat-block"><div class="stat-val c-great" id="st-great">—</div><div class="stat-key">Great Deals</div></div>
+    <div class="stat-block"><div class="stat-val c-good"  id="st-good" >—</div><div class="stat-key">Good Deals</div></div>
+    <div class="stat-spacer"></div>
+    <div class="stat-cats" id="st-cats"></div>
   </div>
-  <div class="toolbar">
-    <input type="search" id="searchInput" placeholder="Search deals…" oninput="applyFilters()" />
-    <button class="filter-btn active"       data-verdict="all"        onclick="setVerdictFilter('all')">All</button>
-    <button class="filter-btn great"        data-verdict="GREAT DEAL" onclick="setVerdictFilter('GREAT DEAL')">Great</button>
-    <button class="filter-btn good"         data-verdict="GOOD DEAL"  onclick="setVerdictFilter('GOOD DEAL')">Good</button>
-    <button class="filter-btn fair"         data-verdict="FAIR DEAL"  onclick="setVerdictFilter('FAIR DEAL')">Fair</button>
-    <button class="filter-btn skip"         data-verdict="SKIP"       onclick="setVerdictFilter('SKIP')">Skip</button>
-    <button class="filter-btn"             data-verdict="unanalyzed" onclick="setVerdictFilter('unanalyzed')">Unanalyzed</button>
-    <button class="filter-btn saved-filter" data-verdict="saved"      onclick="setVerdictFilter('saved')">★ Saved</button>
-    <span class="refresh-info" id="refreshInfo">—</span>
+
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <input class="search-input" type="search" id="searchInput" placeholder="Search deals…" oninput="applyFilters()" />
+    </div>
+    <button class="chip active"   data-verdict="all"        onclick="setVerdictFilter('all')">All</button>
+    <button class="chip great"    data-verdict="GREAT DEAL" onclick="setVerdictFilter('GREAT DEAL')">🔥 Great</button>
+    <button class="chip good"     data-verdict="GOOD DEAL"  onclick="setVerdictFilter('GOOD DEAL')">✅ Good</button>
+    <button class="chip fair"     data-verdict="FAIR DEAL"  onclick="setVerdictFilter('FAIR DEAL')">🟡 Fair</button>
+    <button class="chip skip"     data-verdict="SKIP"       onclick="setVerdictFilter('SKIP')">✗ Skip</button>
+    <button class="chip"          data-verdict="unanalyzed" onclick="setVerdictFilter('unanalyzed')">? Pending</button>
+    <button class="chip saved-f"  data-verdict="saved"      onclick="setVerdictFilter('saved')">★ Saved</button>
+    <span class="filter-ts" id="refreshInfo">—</span>
   </div>
-  <main>
+
+  <div class="deals-main">
     <div class="deals-grid" id="dealsGrid">
       <div class="empty-state"><p>Loading deals…</p></div>
     </div>
-  </main>
+  </div>
 </div>
 
-<!-- ── Alert Rules tab ────────────────────────────────────────────────────── -->
+<!-- ── Alert Rules Tab ───────────────────────────────────────────────────── -->
 <div id="tab-alerts" style="display:none">
-  <div class="alerts-panel">
-    <h2>Active Alert Rules</h2>
-    <table class="rules-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Search Query</th>
-          <th>Category</th>
-          <th>Match Keywords</th>
-          <th>Exclude</th>
-          <th>Min Score</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="rulesBody">
-        <tr><td colspan="7" class="no-rules">Loading…</td></tr>
-      </tbody>
-    </table>
+  <div class="panel">
+    <div class="panel-h">Alert Rules</div>
 
-    <div class="add-form">
-      <h3>Add Alert Rule</h3>
+    <div class="panel-card">
+      <div class="panel-card-hdr">Active Rules</div>
+      <table class="rules-tbl">
+        <thead>
+          <tr>
+            <th>Name</th><th>Query</th><th>Category</th>
+            <th>Keywords</th><th>Exclude</th><th>Min Score</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="rulesBody">
+          <tr><td colspan="7" class="no-rules">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-card-hdr">Add New Rule</div>
       <form id="addForm" onsubmit="submitAlert(event)">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Name <span style="color:#f87171">*</span></label>
-            <input type="text" id="f-name" placeholder="e.g. Gaming Monitors" required />
+        <div class="frow cols">
+          <div class="frow">
+            <label class="flbl">Name <span class="req">*</span></label>
+            <input class="finput" type="text" id="f-name" placeholder="e.g. Gaming Monitors" required />
           </div>
-          <div class="form-group">
-            <label>Search Query <span style="color:#f87171">*</span></label>
-            <input type="text" id="f-query" placeholder="e.g. monitor" required />
-            <small>Sent to Slickdeals search</small>
-          </div>
-          <div class="form-group">
-            <label>Category</label>
-            <select id="f-category">
-              <option value="">Auto-detect</option>
-              <option>TVs</option>
-              <option>Monitors</option>
-              <option>Laptops</option>
-              <option>Headphones</option>
-              <option>Smartphones</option>
-              <option>Tablets</option>
-              <option>GPUs</option>
-              <option>CPUs</option>
-              <option>SSDs</option>
-              <option>Cameras</option>
-              <option>Gaming</option>
-              <option>Gaming Peripherals</option>
-              <option>Smart Home</option>
-              <option>Appliances</option>
-              <option>Routers</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Min Community Score</label>
-            <input type="number" id="f-min-score" value="0" min="0" />
-            <small>Filter out low-voted deals</small>
-          </div>
-          <div class="form-group full">
-            <label>Match Keywords <span style="color:#64748b">(comma-separated)</span></label>
-            <input type="text" id="f-keywords" placeholder="e.g. gaming monitor, 144hz, 1440p" />
-            <small>Deal title must contain at least one of these — leave blank to match all results</small>
-          </div>
-          <div class="form-group full">
-            <label>Exclude Terms <span style="color:#64748b">(comma-separated)</span></label>
-            <input type="text" id="f-exclude" placeholder="e.g. refurbished, open box" />
+          <div class="frow">
+            <label class="flbl">Search Query <span class="req">*</span></label>
+            <input class="finput" type="text" id="f-query" placeholder="e.g. monitor" required />
+            <span class="fhint">Sent directly to Slickdeals search</span>
           </div>
         </div>
-        <div class="form-actions">
-          <button type="submit" class="btn-primary">Add Alert</button>
+        <div class="frow cols">
+          <div class="frow">
+            <label class="flbl">Category</label>
+            <select class="fselect" id="f-category">
+              <option value="">Auto-detect</option>
+              <option>TVs</option><option>Monitors</option><option>Laptops</option>
+              <option>Headphones</option><option>Smartphones</option><option>Tablets</option>
+              <option>GPUs</option><option>CPUs</option><option>SSDs</option>
+              <option>Cameras</option><option>Gaming</option><option>Gaming Peripherals</option>
+              <option>Smart Home</option><option>Appliances</option><option>Routers</option>
+            </select>
+          </div>
+          <div class="frow">
+            <label class="flbl">Min Community Score</label>
+            <input class="finput" type="number" id="f-min-score" value="0" min="0" />
+            <span class="fhint">Filter out low-voted deals</span>
+          </div>
+        </div>
+        <div class="frow">
+          <label class="flbl">Match Keywords <span style="color:var(--txt-3);font-weight:400">(comma-separated)</span></label>
+          <input class="finput" type="text" id="f-keywords" placeholder="e.g. gaming monitor, 144hz, 1440p" />
+          <span class="fhint">Title must contain at least one — leave blank to match all results</span>
+        </div>
+        <div class="frow">
+          <label class="flbl">Exclude Terms <span style="color:var(--txt-3);font-weight:400">(comma-separated)</span></label>
+          <input class="finput" type="text" id="f-exclude" placeholder="e.g. refurbished, open box" />
+        </div>
+        <div class="faction">
+          <button type="submit" class="btn-primary">Add Rule</button>
           <span id="formMsg"></span>
         </div>
       </form>
@@ -368,49 +680,49 @@
   </div>
 </div>
 
-<!-- ── Settings tab ───────────────────────────────────────────────────────── -->
+<!-- ── Settings Tab ──────────────────────────────────────────────────────── -->
 <div id="tab-settings" style="display:none">
-  <div class="settings-panel">
-    <h2>Settings</h2>
+  <div class="panel settings-panel">
+    <div class="panel-h">Settings</div>
 
-    <div class="settings-section">
-      <h3>Deal Cleanup</h3>
-      <div class="form-group">
-        <label>Delete deals older than (days)</label>
-        <input type="number" id="s-retention" min="0" value="30" style="width:120px" />
-        <small>Set to 0 to never auto-delete. Saved deals (★) are always kept regardless.</small>
+    <div class="panel-card">
+      <div class="panel-card-hdr">Deal Cleanup</div>
+      <div class="frow">
+        <label class="flbl">Delete deals older than (days)</label>
+        <input class="finput narrow" type="number" id="s-retention" min="0" value="30" />
+        <span class="fhint">Set to 0 to never auto-delete. Saved (★) deals are always kept.</span>
       </div>
     </div>
 
-    <div class="settings-section">
-      <h3>Polling</h3>
-      <div class="form-group">
-        <label>Poll interval (minutes)</label>
-        <input type="number" id="s-poll-interval" min="5" value="30" style="width:120px" />
+    <div class="panel-card">
+      <div class="panel-card-hdr">Polling</div>
+      <div class="frow">
+        <label class="flbl">Poll interval (minutes)</label>
+        <input class="finput narrow" type="number" id="s-poll-interval" min="5" value="30" />
       </div>
     </div>
 
-    <div class="settings-section">
-      <h3>Notifications</h3>
-      <div class="pushover-status">
-        <span class="status-dot" id="pushoverDot"></span>
+    <div class="panel-card">
+      <div class="panel-card-hdr">Notifications</div>
+      <div class="status-row">
+        <span class="dot" id="pushoverDot"></span>
         <span id="pushoverStatus">Pushover: checking…</span>
       </div>
-      <div class="form-group" style="margin-top:0.85rem">
-        <label>Minimum verdict to notify</label>
-        <select id="s-min-verdict">
+      <div class="frow">
+        <label class="flbl">Minimum verdict to notify</label>
+        <select class="fselect" id="s-min-verdict">
           <option value="GREAT DEAL">Great Deal only</option>
-          <option value="GOOD DEAL" selected>Good Deal and above</option>
+          <option value="GOOD DEAL">Good Deal and above</option>
           <option value="FAIR DEAL">Fair Deal and above</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Max notifications per check</label>
-        <input type="number" id="s-max-per-check" min="1" max="20" value="5" style="width:120px" />
+      <div class="frow">
+        <label class="flbl">Max notifications per check</label>
+        <input class="finput narrow" type="number" id="s-max-per-check" min="1" max="20" value="5" />
       </div>
     </div>
 
-    <div class="form-actions">
+    <div class="faction">
       <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
       <span id="settingsMsg"></span>
     </div>
@@ -420,12 +732,12 @@
 <script>
   /* ── Tab switching ──────────────────────────────────────── */
   function showTab(name) {
-    ['deals', 'alerts', 'settings'].forEach(t => {
+    ['deals','alerts','settings'].forEach(t => {
       document.getElementById('tab-' + t).style.display = name === t ? '' : 'none';
     });
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.tab === name);
-    });
+    document.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === name)
+    );
     if (name === 'alerts')   loadRules();
     if (name === 'settings') loadSettings();
   }
@@ -443,20 +755,21 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* ── Deals tab ──────────────────────────────────────────── */
+  /* ── Deals Tab ──────────────────────────────────────────── */
   let allDeals = [];
   let verdictFilter = 'all';
 
   async function loadStats() {
     try {
       const s = await fetch('/api/stats').then(r => r.json());
-      document.getElementById('statsBar').innerHTML = `
-        <div class="stat-chip"><strong>${s.total}</strong> total</div>
-        <div class="stat-chip"><strong>${s.new_today}</strong> today</div>
-        <div class="stat-chip" style="color:#86efac"><strong>${s.great_deals}</strong> great</div>
-        <div class="stat-chip" style="color:#93c5fd"><strong>${s.good_deals}</strong> good</div>
-        ${s.categories.slice(0,4).map(c=>`<div class="stat-chip">${emo(c.name)} ${c.name} <strong>${c.count}</strong></div>`).join('')}
-      `;
+      document.getElementById('st-total').textContent = s.total;
+      document.getElementById('st-today').textContent = s.new_today;
+      document.getElementById('st-great').textContent = s.great_deals;
+      document.getElementById('st-good').textContent  = s.good_deals;
+      document.getElementById('st-cats').innerHTML =
+        s.categories.slice(0,5).map(c =>
+          `<div class="cat-chip">${emo(c.name)} ${c.name} <strong>${c.count}</strong></div>`
+        ).join('');
     } catch(e) {}
   }
 
@@ -464,24 +777,27 @@
     try {
       allDeals = await fetch('/api/deals').then(r => r.json());
       applyFilters();
-      document.getElementById('refreshInfo').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      document.getElementById('refreshInfo').textContent =
+        'Updated ' + new Date().toLocaleTimeString();
     } catch(e) {
       document.getElementById('dealsGrid').innerHTML =
-        '<div class="empty-state"><div style="font-size:2rem">⚠️</div><p>Could not load deals.</p></div>';
+        '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load deals.</p></div>';
     }
   }
 
   function setVerdictFilter(v) {
     verdictFilter = v;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.verdict === v));
+    document.querySelectorAll('.chip').forEach(b =>
+      b.classList.toggle('active', b.dataset.verdict === v)
+    );
     applyFilters();
   }
 
   function applyFilters() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     const filtered = allDeals.filter(d => {
-      if (verdictFilter === 'saved')      { if (!d.saved) return false; }
-      else if (verdictFilter !== 'all')   {
+      if (verdictFilter === 'saved') { if (!d.saved) return false; }
+      else if (verdictFilter !== 'all') {
         if (verdictFilter === 'unanalyzed' && d.verdict) return false;
         if (verdictFilter !== 'unanalyzed' && d.verdict !== verdictFilter) return false;
       }
@@ -496,42 +812,50 @@
   function renderDeals(deals) {
     const grid = document.getElementById('dealsGrid');
     if (!deals.length) {
-      grid.innerHTML = '<div class="empty-state"><div style="font-size:2rem">🔍</div><p>No deals match your filters.</p></div>';
+      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>No deals match your filters.</p></div>';
       return;
     }
     grid.innerHTML = deals.map(d => {
-      const cat = d.category_detected || d.category || 'General';
-      const e = emo(cat);
-      const discountBadge = d.discount_pct ? `<span class="discount"> -${Math.round(d.discount_pct)}%</span>` : '';
-      const wasBadge = d.original_price ? `<span class="was">${esc(d.original_price)}</span> ` : '';
-      const verdictBadge = d.verdict
-        ? `<span class="badge badge-verdict" style="background:${esc(d.verdict_color)}">${esc(d.verdict)}</span>` : '';
+      const cat   = d.category_detected || d.category || 'General';
+      const e     = emo(cat);
+      const vcls  = d.verdict ? 'vb-' + d.verdict.toLowerCase().replace(/ /g,'-') : '';
       const imgEl = d.image_url
         ? `<img class="card-img" src="${esc(d.image_url)}" loading="lazy"
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-           <div class="card-img-placeholder" style="display:none">${e}</div>`
-        : `<div class="card-img-placeholder">${e}</div>`;
-      const savedClass = d.saved ? ' saved' : '';
-      const savedBtnClass = d.saved ? ' saved' : '';
-      const savedTitle = d.saved ? 'Saved — click to unsave' : 'Save this deal';
+           <div class="card-img-ph" style="display:none">${e}</div>`
+        : `<div class="card-img-ph">${e}</div>`;
+      const offHtml = d.discount_pct
+        ? `<span class="price-off">-${Math.round(d.discount_pct)}%</span>` : '';
+      const wasHtml = d.original_price
+        ? `<span class="price-was">${esc(d.original_price)}</span>` : '';
       return `
-        <div class="deal-card${d.seen?' seen':''}${d.saved?' card-saved':''}" id="card-${esc(d.id)}">
-          ${imgEl}
-          <div class="card-body">
-            <div class="card-title">${esc(d.title)}</div>
-            <div class="card-meta">
-              ${verdictBadge}
-              <span class="badge badge-category">${e} ${esc(cat)}</span>
-              ${d.store ? `<span class="badge badge-store">${esc(d.store)}</span>` : ''}
-            </div>
-            <div class="card-price">${d.price ? esc(d.price) : 'N/A'} ${wasBadge}${discountBadge}</div>
+        <div class="deal-card${d.seen?' is-seen':''}${d.saved?' is-saved':''}"
+             data-verdict="${esc(d.verdict||'')}" id="card-${esc(d.id)}">
+          <div class="card-media">
+            ${imgEl}
+            <div class="card-overlay"></div>
+            ${d.verdict ? `<span class="card-vbadge ${vcls}">${esc(d.verdict)}</span>` : ''}
+            <button class="card-save-btn${d.saved?' is-saved':''}" id="save-${esc(d.id)}"
+                    onclick="toggleSave('${esc(d.id)}')"
+                    title="${d.saved?'Saved — click to unsave':'Save this deal'}">
+              ${d.saved ? '★' : '☆'}
+            </button>
           </div>
-          <div class="card-footer">
-            <span class="score">👍 <strong>${d.score}</strong></span>
-            <button class="btn-save${savedBtnClass}" id="save-${esc(d.id)}"
-                    onclick="toggleSave('${esc(d.id)}')" title="${savedTitle}">${d.saved ? '★' : '☆'}</button>
-            <a class="btn-primary" style="margin-left:auto" href="${esc(d.url)}" target="_blank" rel="noopener"
-               onclick="markSeen('${esc(d.id)}')">View Deal →</a>
+          <div class="card-body">
+            <p class="card-title">${esc(d.title)}</p>
+            <div class="card-meta">
+              <span class="badge-cat">${e} ${esc(cat)}</span>
+              ${d.store ? `<span class="badge-store">${esc(d.store)}</span>` : ''}
+            </div>
+          </div>
+          <div class="card-foot">
+            <div class="price-group">
+              <span class="price-now">${d.price ? esc(d.price) : '—'}</span>
+              ${wasHtml}${offHtml}
+            </div>
+            <span class="score-lbl">👍 ${d.score}</span>
+            <a class="btn-view" href="${esc(d.url)}" target="_blank" rel="noopener"
+               onclick="markSeen('${esc(d.id)}')">View →</a>
           </div>
         </div>`;
     }).join('');
@@ -539,25 +863,26 @@
 
   async function markSeen(id) {
     await fetch(`/api/mark-seen/${encodeURIComponent(id)}`, { method: 'POST' });
-    document.getElementById('card-' + id)?.classList.add('seen');
+    document.getElementById('card-' + id)?.classList.add('is-seen');
   }
 
   async function toggleSave(id) {
-    const btn = document.getElementById('save-' + id);
     const res = await fetch(`/api/deals/${encodeURIComponent(id)}/save`, { method: 'POST' });
     if (!res.ok) return;
     const j = await res.json();
     const deal = allDeals.find(d => d.id === id);
     if (deal) deal.saved = j.saved;
+    const btn  = document.getElementById('save-' + id);
+    const card = document.getElementById('card-' + id);
     if (btn) {
       btn.textContent = j.saved ? '★' : '☆';
-      btn.classList.toggle('saved', j.saved);
+      btn.classList.toggle('is-saved', j.saved);
       btn.title = j.saved ? 'Saved — click to unsave' : 'Save this deal';
     }
-    document.getElementById('card-' + id)?.classList.toggle('card-saved', j.saved);
+    card?.classList.toggle('is-saved', j.saved);
   }
 
-  /* ── Alert Rules tab ────────────────────────────────────── */
+  /* ── Alert Rules Tab ────────────────────────────────────── */
   let rules = [];
 
   async function loadRules() {
@@ -573,7 +898,7 @@
   function renderRules() {
     const tbody = document.getElementById('rulesBody');
     if (!rules.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="no-rules">No alert rules configured.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="no-rules">No alert rules yet.</td></tr>';
       return;
     }
     tbody.innerHTML = rules.map(r => {
@@ -581,11 +906,11 @@
       const exTags = (r.exclude||[]).map(k=>`<span class="tag">${esc(k)}</span>`).join('');
       return `<tr>
         <td><strong>${esc(r.name)}</strong></td>
-        <td>${esc(r.query)}</td>
-        <td>${r.category ? `${emo(r.category)} ${esc(r.category)}` : '<span style="color:#475569">auto</span>'}</td>
-        <td><div class="tag-list">${kwTags || '<span style="color:#475569">any</span>'}</div></td>
-        <td><div class="tag-list">${exTags || '—'}</div></td>
-        <td>${r.min_score}</td>
+        <td style="color:var(--txt-2)">${esc(r.query)}</td>
+        <td>${r.category?`${emo(r.category)} ${esc(r.category)}`:'<span style="color:var(--txt-3)">auto</span>'}</td>
+        <td><div class="tag-list">${kwTags||'<span style="color:var(--txt-3)">any</span>'}</div></td>
+        <td><div class="tag-list">${exTags||'—'}</div></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem">${r.min_score}</td>
         <td><button class="btn-danger" data-name="${esc(r.name)}" onclick="deleteRule(this.dataset.name)">Remove</button></td>
       </tr>`;
     }).join('');
@@ -606,7 +931,6 @@
     e.preventDefault();
     const msg = document.getElementById('formMsg');
     msg.textContent = '';
-
     const body = {
       name:      document.getElementById('f-name').value.trim(),
       query:     document.getElementById('f-query').value.trim(),
@@ -615,26 +939,24 @@
       keywords:  document.getElementById('f-keywords').value,
       exclude:   document.getElementById('f-exclude').value,
     };
-
     const res = await fetch('/api/searches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const j = await res.json().catch(()=>({}));
-
     if (res.ok) {
-      msg.className = 'form-success';
-      msg.textContent = `"${body.name}" added. It will be tracked on the next poll.`;
+      msg.className = 'msg-ok';
+      msg.textContent = `"${body.name}" added — tracked on next poll.`;
       document.getElementById('addForm').reset();
       await loadRules();
     } else {
-      msg.className = 'form-error';
+      msg.className = 'msg-err';
       msg.textContent = j.error || 'Failed to add rule.';
     }
   }
 
-  /* ── Settings tab ───────────────────────────────────────── */
+  /* ── Settings Tab ───────────────────────────────────────── */
   async function loadSettings() {
     try {
       const s = await fetch('/api/settings').then(r => r.json());
@@ -644,8 +966,8 @@
       document.getElementById('s-max-per-check').value = s.max_per_check;
       const dot = document.getElementById('pushoverDot');
       const lbl = document.getElementById('pushoverStatus');
-      dot.className = 'status-dot ' + (s.pushover_enabled ? 'on' : 'off');
-      lbl.textContent = 'Pushover: ' + (s.pushover_enabled ? 'enabled' : 'disabled');
+      dot.className = 'dot ' + (s.pushover_enabled ? 'on' : 'off');
+      lbl.textContent = 'Pushover ' + (s.pushover_enabled ? 'enabled' : 'disabled');
     } catch(e) {}
   }
 
@@ -664,11 +986,11 @@
       body: JSON.stringify(body),
     });
     if (res.ok) {
-      msg.className = 'form-success';
+      msg.className = 'msg-ok';
       msg.textContent = 'Saved.';
       setTimeout(() => msg.textContent = '', 3000);
     } else {
-      msg.className = 'form-error';
+      msg.className = 'msg-err';
       msg.textContent = 'Failed to save settings.';
     }
   }
