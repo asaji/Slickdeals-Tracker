@@ -79,6 +79,11 @@ def _check_hot_deals(cfg, db: DealDatabase) -> list:
 
 
 def _run_once(cfg, db: DealDatabase) -> tuple[int, int]:
+    if cfg.retention_days > 0:
+        deleted = db.delete_old_deals(cfg.retention_days)
+        if deleted:
+            _console.print(f"[dim]Cleaned up {deleted} old deal(s) (>{cfg.retention_days}d).[/dim]")
+
     all_new: int = 0
     all_total: int = 0
 

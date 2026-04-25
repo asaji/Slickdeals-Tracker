@@ -17,6 +17,7 @@ class Deal:
     summary: str
     image_url: Optional[str] = None
     seen: bool = False
+    saved: bool = False
     matched_keywords: list[str] = field(default_factory=list)
     # Populated after running analyze
     verdict: Optional[str] = None

@@ -117,8 +117,9 @@ def _extract_score(item: ET.Element) -> int:
     for text in (cleaned, raw):
         m = _SCORE_RE.search(text)
         if m:
-            # Group 1: "Thumb Score: +14" pattern; Group 2: "14 thumbs" fallback
-            return int(m.group(1) or m.group(2) or 0)
+            val = int(m.group(1) or m.group(2) or 0)
+            # Cap at 99999 — larger values are garbled IDs/timestamps from the feed
+            return val if val < 100_000 else 0
 
     return 0
 

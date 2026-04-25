@@ -106,6 +106,7 @@
     .filter-btn.good.active  { background: #14532d; border-color: #86efac; color: #bbf7d0; }
     .filter-btn.fair.active  { background: #451a03; border-color: #fbbf24; color: #fde68a; }
     .filter-btn.skip.active  { background: #450a0a; border-color: #f87171; color: #fca5a5; }
+    .filter-btn.saved-filter.active { background: #422006; border-color: #fbbf24; color: #fde68a; }
     .refresh-info { margin-left: auto; font-size: 0.73rem; color: #475569; }
 
     /* ── Deal cards ────────────────────────────────────────── */
@@ -127,6 +128,7 @@
     }
     .deal-card:hover { border-color: #64748b; }
     .deal-card.seen { opacity: 0.45; }
+    .deal-card.card-saved { border-top: 2px solid #fbbf24; }
 
     .card-img { width: 100%; height: 130px; object-fit: cover; background: #0f172a; }
     .card-img-placeholder {
@@ -169,6 +171,13 @@
       font-weight: 600; cursor: pointer; transition: background 0.15s;
     }
     .btn-danger:hover { background: #991b1b; }
+    .btn-save {
+      background: none; border: 1px solid #334155; border-radius: 6px;
+      color: #475569; cursor: pointer; font-size: 1rem; line-height: 1;
+      padding: 0.25rem 0.45rem; transition: all 0.15s;
+    }
+    .btn-save:hover { color: #fbbf24; border-color: #fbbf24; }
+    .btn-save.saved { color: #fbbf24; border-color: #fbbf24; }
 
     .empty-state {
       text-align: center; padding: 4rem 1rem; color: #475569; grid-column: 1 / -1;
@@ -221,6 +230,29 @@
     .form-actions { margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; }
     .form-error { color: #f87171; font-size: 0.8rem; }
     .form-success { color: #86efac; font-size: 0.8rem; }
+
+    /* ── Settings tab ──────────────────────────────────────── */
+    .settings-panel { padding: 1.5rem; max-width: 560px; }
+    .settings-panel h2 { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1.5rem; }
+    .settings-section {
+      background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+      padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .settings-section h3 {
+      font-size: 0.88rem; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem;
+    }
+    .settings-section .form-group { margin-bottom: 0.75rem; }
+    .settings-section .form-group:last-child { margin-bottom: 0; }
+    .pushover-status {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.85rem; color: #94a3b8; padding: 0.4rem 0;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .status-dot.on  { background: #22c55e; }
+    .status-dot.off { background: #ef4444; }
   </style>
 </head>
 <body>
@@ -228,8 +260,9 @@
 <header>
   <div class="header-brand">🔥 Slickdeals Tracker</div>
   <nav class="tabs">
-    <button class="tab-btn active" onclick="showTab('deals')">Deals</button>
-    <button class="tab-btn" onclick="showTab('alerts')">Alert Rules</button>
+    <button class="tab-btn active" data-tab="deals"    onclick="showTab('deals')">Deals</button>
+    <button class="tab-btn"        data-tab="alerts"   onclick="showTab('alerts')">Alert Rules</button>
+    <button class="tab-btn"        data-tab="settings" onclick="showTab('settings')">Settings</button>
   </nav>
 </header>
 
@@ -240,12 +273,13 @@
   </div>
   <div class="toolbar">
     <input type="search" id="searchInput" placeholder="Search deals…" oninput="applyFilters()" />
-    <button class="filter-btn active" data-verdict="all"        onclick="setVerdictFilter('all')">All</button>
-    <button class="filter-btn great"  data-verdict="GREAT DEAL" onclick="setVerdictFilter('GREAT DEAL')">Great</button>
-    <button class="filter-btn good"   data-verdict="GOOD DEAL"  onclick="setVerdictFilter('GOOD DEAL')">Good</button>
-    <button class="filter-btn fair"   data-verdict="FAIR DEAL"  onclick="setVerdictFilter('FAIR DEAL')">Fair</button>
-    <button class="filter-btn skip"   data-verdict="SKIP"       onclick="setVerdictFilter('SKIP')">Skip</button>
-    <button class="filter-btn"        data-verdict="unanalyzed" onclick="setVerdictFilter('unanalyzed')">Unanalyzed</button>
+    <button class="filter-btn active"       data-verdict="all"        onclick="setVerdictFilter('all')">All</button>
+    <button class="filter-btn great"        data-verdict="GREAT DEAL" onclick="setVerdictFilter('GREAT DEAL')">Great</button>
+    <button class="filter-btn good"         data-verdict="GOOD DEAL"  onclick="setVerdictFilter('GOOD DEAL')">Good</button>
+    <button class="filter-btn fair"         data-verdict="FAIR DEAL"  onclick="setVerdictFilter('FAIR DEAL')">Fair</button>
+    <button class="filter-btn skip"         data-verdict="SKIP"       onclick="setVerdictFilter('SKIP')">Skip</button>
+    <button class="filter-btn"             data-verdict="unanalyzed" onclick="setVerdictFilter('unanalyzed')">Unanalyzed</button>
+    <button class="filter-btn saved-filter" data-verdict="saved"      onclick="setVerdictFilter('saved')">★ Saved</button>
     <span class="refresh-info" id="refreshInfo">—</span>
   </div>
   <main>
@@ -334,15 +368,66 @@
   </div>
 </div>
 
+<!-- ── Settings tab ───────────────────────────────────────────────────────── -->
+<div id="tab-settings" style="display:none">
+  <div class="settings-panel">
+    <h2>Settings</h2>
+
+    <div class="settings-section">
+      <h3>Deal Cleanup</h3>
+      <div class="form-group">
+        <label>Delete deals older than (days)</label>
+        <input type="number" id="s-retention" min="0" value="30" style="width:120px" />
+        <small>Set to 0 to never auto-delete. Saved deals (★) are always kept regardless.</small>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Polling</h3>
+      <div class="form-group">
+        <label>Poll interval (minutes)</label>
+        <input type="number" id="s-poll-interval" min="5" value="30" style="width:120px" />
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Notifications</h3>
+      <div class="pushover-status">
+        <span class="status-dot" id="pushoverDot"></span>
+        <span id="pushoverStatus">Pushover: checking…</span>
+      </div>
+      <div class="form-group" style="margin-top:0.85rem">
+        <label>Minimum verdict to notify</label>
+        <select id="s-min-verdict">
+          <option value="GREAT DEAL">Great Deal only</option>
+          <option value="GOOD DEAL" selected>Good Deal and above</option>
+          <option value="FAIR DEAL">Fair Deal and above</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Max notifications per check</label>
+        <input type="number" id="s-max-per-check" min="1" max="20" value="5" style="width:120px" />
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+      <span id="settingsMsg"></span>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ── Tab switching ──────────────────────────────────────── */
   function showTab(name) {
-    document.getElementById('tab-deals').style.display  = name === 'deals'  ? '' : 'none';
-    document.getElementById('tab-alerts').style.display = name === 'alerts' ? '' : 'none';
-    document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', (i === 0) === (name === 'deals'));
+    ['deals', 'alerts', 'settings'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = name === t ? '' : 'none';
     });
-    if (name === 'alerts') loadRules();
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === name);
+    });
+    if (name === 'alerts')   loadRules();
+    if (name === 'settings') loadSettings();
   }
 
   /* ── Helpers ────────────────────────────────────────────── */
@@ -395,7 +480,8 @@
   function applyFilters() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     const filtered = allDeals.filter(d => {
-      if (verdictFilter !== 'all') {
+      if (verdictFilter === 'saved')      { if (!d.saved) return false; }
+      else if (verdictFilter !== 'all')   {
         if (verdictFilter === 'unanalyzed' && d.verdict) return false;
         if (verdictFilter !== 'unanalyzed' && d.verdict !== verdictFilter) return false;
       }
@@ -425,8 +511,11 @@
                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
            <div class="card-img-placeholder" style="display:none">${e}</div>`
         : `<div class="card-img-placeholder">${e}</div>`;
+      const savedClass = d.saved ? ' saved' : '';
+      const savedBtnClass = d.saved ? ' saved' : '';
+      const savedTitle = d.saved ? 'Saved — click to unsave' : 'Save this deal';
       return `
-        <div class="deal-card${d.seen?' seen':''}" id="card-${esc(d.id)}">
+        <div class="deal-card${d.seen?' seen':''}${d.saved?' card-saved':''}" id="card-${esc(d.id)}">
           ${imgEl}
           <div class="card-body">
             <div class="card-title">${esc(d.title)}</div>
@@ -439,6 +528,8 @@
           </div>
           <div class="card-footer">
             <span class="score">👍 <strong>${d.score}</strong></span>
+            <button class="btn-save${savedBtnClass}" id="save-${esc(d.id)}"
+                    onclick="toggleSave('${esc(d.id)}')" title="${savedTitle}">${d.saved ? '★' : '☆'}</button>
             <a class="btn-primary" style="margin-left:auto" href="${esc(d.url)}" target="_blank" rel="noopener"
                onclick="markSeen('${esc(d.id)}')">View Deal →</a>
           </div>
@@ -449,6 +540,21 @@
   async function markSeen(id) {
     await fetch(`/api/mark-seen/${encodeURIComponent(id)}`, { method: 'POST' });
     document.getElementById('card-' + id)?.classList.add('seen');
+  }
+
+  async function toggleSave(id) {
+    const btn = document.getElementById('save-' + id);
+    const res = await fetch(`/api/deals/${encodeURIComponent(id)}/save`, { method: 'POST' });
+    if (!res.ok) return;
+    const j = await res.json();
+    const deal = allDeals.find(d => d.id === id);
+    if (deal) deal.saved = j.saved;
+    if (btn) {
+      btn.textContent = j.saved ? '★' : '☆';
+      btn.classList.toggle('saved', j.saved);
+      btn.title = j.saved ? 'Saved — click to unsave' : 'Save this deal';
+    }
+    document.getElementById('card-' + id)?.classList.toggle('card-saved', j.saved);
   }
 
   /* ── Alert Rules tab ────────────────────────────────────── */
@@ -525,6 +631,45 @@
     } else {
       msg.className = 'form-error';
       msg.textContent = j.error || 'Failed to add rule.';
+    }
+  }
+
+  /* ── Settings tab ───────────────────────────────────────── */
+  async function loadSettings() {
+    try {
+      const s = await fetch('/api/settings').then(r => r.json());
+      document.getElementById('s-retention').value     = s.retention_days;
+      document.getElementById('s-poll-interval').value = s.poll_interval_minutes;
+      document.getElementById('s-min-verdict').value   = s.min_verdict;
+      document.getElementById('s-max-per-check').value = s.max_per_check;
+      const dot = document.getElementById('pushoverDot');
+      const lbl = document.getElementById('pushoverStatus');
+      dot.className = 'status-dot ' + (s.pushover_enabled ? 'on' : 'off');
+      lbl.textContent = 'Pushover: ' + (s.pushover_enabled ? 'enabled' : 'disabled');
+    } catch(e) {}
+  }
+
+  async function saveSettings() {
+    const msg = document.getElementById('settingsMsg');
+    msg.textContent = '';
+    const body = {
+      retention_days:        parseInt(document.getElementById('s-retention').value) || 0,
+      poll_interval_minutes: parseInt(document.getElementById('s-poll-interval').value) || 30,
+      min_verdict:           document.getElementById('s-min-verdict').value,
+      max_per_check:         parseInt(document.getElementById('s-max-per-check').value) || 5,
+    };
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      msg.className = 'form-success';
+      msg.textContent = 'Saved.';
+      setTimeout(() => msg.textContent = '', 3000);
+    } else {
+      msg.className = 'form-error';
+      msg.textContent = 'Failed to save settings.';
     }
   }
 

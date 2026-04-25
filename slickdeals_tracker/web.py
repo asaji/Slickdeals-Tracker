@@ -4,7 +4,7 @@ import os
 
 from flask import Flask, jsonify, render_template, request
 
-from .config import SearchConfig, load_config, save_searches
+from .config import SearchConfig, load_config, save_searches, save_settings
 from .database import DealDatabase
 from .fetcher import FRONTPAGE_RSS, POPULAR_RSS, SEARCH_RSS_TEMPLATE, fetch_raw_sample
 
@@ -60,6 +60,7 @@ def api_deals():
             "value_score": d.value_score,
             "discount_pct": d.discount_pct,
             "savings_str": d.savings_str,
+            "saved": d.saved,
         }
         for d in deals
     ])
@@ -76,6 +77,37 @@ def mark_seen(deal_id: str):
     db = _get_db()
     db.mark_seen(deal_id)
     return jsonify({"ok": True})
+
+
+@app.route("/api/deals/<path:deal_id>/save", methods=["POST"])
+def toggle_save(deal_id: str):
+    db = _get_db()
+    new_state = db.toggle_saved(deal_id)
+    return jsonify({"saved": new_state})
+
+
+@app.route("/api/settings")
+def api_get_settings():
+    cfg = _load_cfg()
+    return jsonify({
+        "poll_interval_minutes": cfg.poll_interval_minutes,
+        "retention_days": cfg.retention_days,
+        "min_verdict": cfg.pushover.min_verdict,
+        "max_per_check": cfg.pushover.max_per_check,
+        "pushover_enabled": cfg.pushover.enabled,
+    })
+
+
+@app.route("/api/settings", methods=["POST"])
+def api_save_settings():
+    data = request.get_json(force=True) or {}
+    allowed = {"poll_interval_minutes", "retention_days", "min_verdict", "max_per_check"}
+    filtered = {k: v for k, v in data.items() if k in allowed}
+    try:
+        save_settings(filtered, _config_path)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ── Debug ─────────────────────────────────────────────────────────────────────

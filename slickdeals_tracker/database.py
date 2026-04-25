@@ -39,6 +39,7 @@ class DealDatabase:
                     summary TEXT,
                     image_url TEXT,
                     seen INTEGER DEFAULT 0,
+                    saved INTEGER DEFAULT 0,
                     matched_keywords TEXT DEFAULT '',
                     created_at TEXT DEFAULT (datetime('now')),
                     verdict TEXT,
@@ -54,6 +55,7 @@ class DealDatabase:
                 ("value_score",        "REAL"),
                 ("category_detected",  "TEXT"),
                 ("discount_pct",       "REAL"),
+                ("saved",              "INTEGER DEFAULT 0"),
             ]:
                 if col not in existing:
                     conn.execute(f"ALTER TABLE deals ADD COLUMN {col} {typedef}")
@@ -68,14 +70,14 @@ class DealDatabase:
             conn.execute("""
                 INSERT OR REPLACE INTO deals
                     (id, title, url, price, original_price, score, category, store,
-                     published, summary, image_url, seen, matched_keywords,
+                     published, summary, image_url, seen, saved, matched_keywords,
                      verdict, value_score, category_detected, discount_pct)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 deal.id, deal.title, deal.url, deal.price, deal.original_price,
                 deal.score, deal.category, deal.store,
                 deal.published.isoformat(), deal.summary, deal.image_url,
-                int(deal.seen), ",".join(deal.matched_keywords),
+                int(deal.seen), int(deal.saved), ",".join(deal.matched_keywords),
                 deal.verdict, deal.value_score, deal.category_detected, deal.discount_pct,
             ))
 
@@ -124,6 +126,28 @@ class DealDatabase:
         with self._conn() as conn:
             conn.execute("UPDATE deals SET seen = 1 WHERE id = ?", (deal_id,))
 
+    def toggle_saved(self, deal_id: str) -> bool:
+        """Toggle saved state. Returns the new state."""
+        with self._conn() as conn:
+            row = conn.execute("SELECT saved FROM deals WHERE id = ?", (deal_id,)).fetchone()
+            if not row:
+                return False
+            new_val = 0 if row["saved"] else 1
+            conn.execute("UPDATE deals SET saved = ? WHERE id = ?", (new_val, deal_id))
+            return bool(new_val)
+
+    def delete_old_deals(self, days: int) -> int:
+        """Delete unsaved deals older than `days`. Returns count deleted."""
+        if days <= 0:
+            return 0
+        with self._conn() as conn:
+            result = conn.execute("""
+                DELETE FROM deals
+                WHERE saved = 0
+                  AND datetime(created_at) < datetime('now', ?)
+            """, (f"-{days} days",))
+            return result.rowcount
+
     @staticmethod
     def _row_to_deal(row: sqlite3.Row) -> Deal:
         keys = row.keys()
@@ -140,6 +164,7 @@ class DealDatabase:
             summary=row["summary"],
             image_url=row["image_url"],
             seen=bool(row["seen"]),
+            saved=bool(row["saved"]) if "saved" in keys else False,
             matched_keywords=row["matched_keywords"].split(",") if row["matched_keywords"] else [],
             verdict=row["verdict"] if "verdict" in keys else None,
             value_score=row["value_score"] if "value_score" in keys else None,

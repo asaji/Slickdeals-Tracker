@@ -39,6 +39,7 @@ class AppConfig:
     db_path: str = "deals.db"
     max_deals_display: int = 20
     show_seen: bool = False
+    retention_days: int = 30
     pushover: PushoverConfig = field(default_factory=PushoverConfig)
     hot_deals: HotDealsConfig = field(default_factory=HotDealsConfig)
 
@@ -116,6 +117,7 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         db_path=data.get("db_path", "deals.db"),
         max_deals_display=data.get("max_deals_display", 20),
         show_seen=data.get("show_seen", False),
+        retention_days=data.get("retention_days", 30),
         pushover=pushover,
         hot_deals=hot_deals,
     )
@@ -142,6 +144,30 @@ def load_config(path: Optional[str] = None) -> AppConfig:
 def write_default_config(path: str = "config.yaml") -> None:
     with open(path, "w") as f:
         yaml.dump(DEFAULT_CONFIG, f, default_flow_style=False, sort_keys=False)
+
+
+def save_settings(settings: dict, path: str) -> None:
+    """Update top-level and pushover settings in the config file."""
+    config_path = Path(path)
+    if config_path.exists():
+        with open(config_path) as f:
+            data = yaml.safe_load(f) or {}
+    else:
+        data = {}
+
+    for key in ("poll_interval_minutes", "retention_days"):
+        if key in settings:
+            data[key] = int(settings[key])
+
+    if any(k in settings for k in ("min_verdict", "max_per_check")):
+        po = data.setdefault("pushover", {})
+        if "min_verdict" in settings:
+            po["min_verdict"] = settings["min_verdict"]
+        if "max_per_check" in settings:
+            po["max_per_check"] = int(settings["max_per_check"])
+
+    with open(config_path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
 
 def save_searches(searches: list[SearchConfig], path: str) -> None:
