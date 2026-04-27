@@ -12,16 +12,16 @@ services:
       - ./data:/config
     environment:
       # Timezone
-      TZ: America/New_York
+      TZ: America/Los_Angeles
 
-      # Pushover notifications (leave blank to disable)
+      # Pushover notifications (leave blank to use config.yaml values)
       PUSHOVER_TOKEN: ""
       PUSHOVER_USER_KEY: ""
-      PUSHOVER_ENABLED: "false"
+      PUSHOVER_ENABLED: ""
 
-      # Hot deals frontpage monitor
-      HOT_DEALS_ENABLED: "false"
-      HOT_DEALS_MIN_SCORE: "0"
+      # Hot deals frontpage monitor (leave blank to use config.yaml values)
+      HOT_DEALS_ENABLED: ""
+      HOT_DEALS_MIN_SCORE: ""
 
       # Poll interval in minutes
       POLL_INTERVAL: "30"
